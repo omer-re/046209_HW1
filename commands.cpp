@@ -1,6 +1,11 @@
 //		commands.c
 //********************************************
 #include "commands.h"
+
+int bsdChecksumFromFile(FILE *fp);
+bool areFilesEqual(fstream *, fstream *);
+int sizeOfFile(fstream *);
+
 //********************************************
 // function name: ExeCmd
 // Description: interperts and executes built-in commands
@@ -35,7 +40,7 @@ int ExeCmd(void* jobs, char* lineSize, char* cmdString, std::string &prev_path )
 /*************************************************/
 	if (!strcmp(cmd, "cd") ) 
 	{
-        printf("entered cd");
+        //printf("entered cd");
         if (num_arg == 1) {
             if (getcwd(pwd, sizeof(pwd)) == NULL)
                 perror("smash error: >");
@@ -67,19 +72,28 @@ int ExeCmd(void* jobs, char* lineSize, char* cmdString, std::string &prev_path )
 	}
 	
 	/*************************************************/
-	else if (!strcmp(cmd, "mkdir"))
+    else if (!strcmp(cmd, "history"))
+    {
+
+    }
+    /*************************************************/
+	else if (!strcmp(cmd, "jobs"))
 	{
  		
 	}
 	/*************************************************/
-	
-	else if (!strcmp(cmd, "jobs")) 
-	{
- 		
-	}
-	/*************************************************/
+    else if (!strcmp(cmd, "kill"))
+    {
+
+    }
+    /*************************************************/
 	else if (!strcmp(cmd, "showpid")) 
 	{
+        if(num_arg != 0)
+            illegal_cmd = true;
+        else
+
+            printf("smash pid is %d\n", (int)getpid());
 		
 	}
 	/*************************************************/
@@ -90,14 +104,80 @@ int ExeCmd(void* jobs, char* lineSize, char* cmdString, std::string &prev_path )
 	/*************************************************/
 	else if (!strcmp(cmd, "bg")) 
 	{
+	    //if arg[2]==NULL find last process that was paused
+	    //print name of process
+	    //move process with command number(arg[2]) to bg
   		
 	}
 	/*************************************************/
 	else if (!strcmp(cmd, "quit"))
 	{
    		
-	} 
-	/*************************************************/
+	}
+        /*************************************************/
+
+    else if (!strcmp(cmd, "cp"))  //TODO do all of the errors has to be followed with "illegal command"?
+    {
+        //check there are 2 args
+        if (num_arg!=2)
+            illegal_cmd = true;
+        else if (!strcmp(args[1], args[2])){
+            perror("smash error:> ");
+            return (-1);
+        }
+        else {     //check for success
+            std::ifstream  src(args[1], std::ios::binary);
+            if (src.rdbuf()==NULL) {
+                perror("smash error:> ");
+                return (-1);
+            }
+            std::ofstream  dst(args[2], std::ios::binary);
+            dst << src.rdbuf();
+            if (dst.rdbuf()==NULL){
+                perror("smash error:> ");
+                return (-1);
+            }
+            else{
+                cout << args[1] << " has been copied to " << args[2] << endl;
+            }
+            //  TODO: check if copied properly
+            //   perror("smash error:> ");
+
+        }
+    }
+        /*************************************************/
+    else if (!strcmp(cmd, "diff"))
+    {
+        //check there are 2 args
+        if (num_arg!=2) {
+            illegal_cmd = true;
+            perror("smash error:> ");
+        }
+
+        fstream file1, file2;
+
+        file1.open(args[1], ios::in | ios::binary | ios::ate);
+        file2.open(args[2], ios::in | ios::binary | ios::ate);
+
+        //verify both files were opened right
+        if (file1.is_open() && file2.is_open())
+        {
+            if (areFilesEqual(&file1, &file2))
+            {
+                //cout << "Files are equal";
+                cout << "0"<<endl;
+            }
+            else
+                //cout << "Files are different";
+                cout << "1" << endl;
+        }
+        else
+            //cout << "The file couldn't be opened properly" << endl;
+            perror("smash error:> ");
+    }
+        /*************************************************/
+
+
 	else // external command
 	{
  		ExeExternal(args, cmdString);
@@ -195,3 +275,66 @@ int BgCmd(char* lineSize, void* jobs, std::string prev_path)
 	return -1;
 }
 
+// checksum function
+int bsdChecksumFromFile(FILE *fp) /* The file handle for input data */
+{
+    int checksum = 0;             /* The checksum mod 2^16. */
+
+    for (int ch = getc(fp); ch != EOF; ch = getc(fp)) {
+        checksum = (checksum >> 1) + ((checksum & 1) << 15);
+        checksum += ch;
+        checksum &= 0xffff;       /* Keep it within bounds. */
+    }
+    return checksum;
+}
+
+
+bool areFilesEqual(fstream *a, fstream *b)
+{
+    int fileSize1 = sizeOfFile(a);
+    int fileSize2 = sizeOfFile(b);
+
+    if (fileSize1 == fileSize2)
+    {
+        int BUFFER_SIZE;
+
+        if(fileSize1 > 1024)
+            BUFFER_SIZE = 1024;
+        else
+            BUFFER_SIZE = fileSize1;
+
+        char *file1buffer = new char[BUFFER_SIZE];
+        char *file2buffer = new char[BUFFER_SIZE];
+
+        do
+        {
+            a->read(file1buffer, BUFFER_SIZE);
+            b->read(file2buffer, BUFFER_SIZE);
+
+            if (memcmp(file1buffer, file2buffer, BUFFER_SIZE) != 0)
+            {
+                //cout << "Files are not equal, at least one of the byte was different" << endl;
+
+                delete [] file1buffer;
+                delete [] file2buffer;
+                return false;
+            }
+        }while(a->good() && b->good());
+
+        delete [] file1buffer;
+        delete [] file2buffer;
+        return true;
+    }
+    else
+    {
+        //cout << "Size of Files are not equal" << endl;
+        return false;
+    }
+}
+int sizeOfFile(fstream * file)
+{
+    file->seekg(0, ios::end);
+    int sizeOfFile = file->tellg();
+    file->seekg(0, ios::beg);
+    return sizeOfFile;
+}

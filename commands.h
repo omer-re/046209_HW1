@@ -1,7 +1,7 @@
 #ifndef _COMMANDS_H
 #define _COMMANDS_H
 #include <unistd.h> 
-//#include <stdio.h>
+#include <stdio.h>
 //#include <time.h>
 #include <stdlib.h>
 #include <signal.h>
@@ -14,10 +14,9 @@
 #include <string>
 #include <cstring>
 #include <iostream>
-#include <iostream>
 #include <sstream>
-
-
+#include <fstream>
+#include <functional>
 
 #define MAX_LINE_SIZE 80
 #define MAX_ARG 20
