@@ -40,6 +40,7 @@ private:
 
 public:
     static int job_counter;
+    static int suspended_counter;
 
     //Constructor
     job(int jpid, string name, bool sus) : id(job_counter++), pid(jpid), jobName(name), suspended(sus) {
@@ -84,10 +85,12 @@ public:
     void jobSuspended() {
         susTime = time(NULL);
         suspended = true;
+        suspended_counter++;
     }
 
     void jpbUnsuspended() {
         suspended = false;
+        suspended_counter--;
     }
 
 
@@ -121,7 +124,6 @@ public:
         history.clear();
     }
     // smash funcs
-
 
     int getSid() { //get ID
         return ID;
@@ -181,7 +183,7 @@ public:
     }
 
     bool isInJList(int idj) {
-        it = getJobFromId(idj);
+        it = getJobFromId(idj);  //TODO should it be "list<job>::iterator it"?
 
         if (it = jobs.end())
             return false;
@@ -226,7 +228,7 @@ int ExeComp(char *lineSize);
 
 int BgCmd(char *lineSize, void *jobs, std::string prev_path);
 
-int ExeCmd(void *jobs, char *lineSize, char *cmdString, std::string &prev_path);
+int ExeCmd(void *jobs, char *lineSize, char *cmdString, string &prev_path, smash &smash1);
 
 void ExeExternal(char *args[MAX_ARG], char *cmdString);
 

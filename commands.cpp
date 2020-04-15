@@ -16,7 +16,7 @@ int sizeOfFile(fstream *);
 // Parameters: pointer to jobs, command std::string
 // Returns: 0 - success,1 - failure
 //**************************************************************************************
-int ExeCmd(void *jobs, char *lineSize, char *cmdString, std::string &prev_path) {
+int ExeCmd(void *jobs, char *lineSize, char *cmdString, string &prev_path, smash &smash1) {
     char *cmd;
     char *args[MAX_ARG];
     char pwd[MAX_LINE_SIZE];
@@ -99,22 +99,23 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, std::string &prev_path) 
         //if arg[2]==NULL find last process that was paused
         //print name of process
         //move process with command number(arg[2]) to bg
-        bool have_stopped = false;
-        list<job>::iterator iter, command = Jobs.LastjobSuspended();
+        bool have_stopped = job::suspended_counter;
+
+        list<job>::iterator iter, command = smash1.LastjobSuspended());
         switch (num_arg) {
 
             case 0:  // handle the last job suspended, move to bg
-                if (command._stopped) {  // TODO make sure such field exists
+                if (job::suspended_counter) {  // TODO make sure such field exists
                     // checking if there was a job suspended
                     have_stopped = true;
                 }
-                if (!have_stopped && !Jobs.size())  // TODO check such method exists
+                if (!have_stopped && job::job_counter)  // TODO check such method exists
                     // in case jobs list isn't empty but none was suspended
 
                     break;
 
             case 1: // find the relevant job and move it
-                command = jobs.find(atoi(args[1]));
+                command = smash1.getJobFromId(atoi(args[1]));
                 break;
 
             default:
@@ -122,7 +123,7 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, std::string &prev_path) 
                 break;
         }
         if (!illegal_cmd) {
-            if (Jobs.LastjobSuspended() != NULL) {  // some job suspended
+            if (job::suspended_counter) {  // some job suspended
 
                 if (send_sig(command._PID, SIGCONT) == 0) {
                     command->second._stopped = false;   // TODO fit to our functions and data set
