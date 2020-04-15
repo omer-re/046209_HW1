@@ -27,6 +27,9 @@ void* jobs = NULL; //This represents the list of jobs. Please change to a prefer
 char lineSize[MAX_LINE_SIZE];
 // new fields
 
+
+smash smash1;
+int job::job_counter = 1;
 //**************************************************************************************
 // function name: main
 // Description: main function of smash. get command from user and calls command functions
@@ -70,11 +73,12 @@ int main(int argc, char *argv[])
 	 	if(!BgCmd(lineSize, jobs, prev_path)) continue;
 					// built in commands
 		ExeCmd(jobs, lineSize, cmdString, prev_path);
-		
+
+            smash1.addToHistory(cmdString); //add command to history list
+
 		/* initialize for next line read*/
 		lineSize[0]='\0';
 		cmdString[0]='\0';
 	}
     return 0;
 }
-
