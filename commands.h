@@ -138,7 +138,10 @@ public:
 
             }
         }
+    }
 
+    const list<job>::iterator getListEnd() {
+        return jobs.end();
     }
 
     void printJobList() {
@@ -171,6 +174,7 @@ public:
     }
 
     list<job>::iterator getJobFromId(int id) { //check if the job ID exist in the list and return the job
+        list<job>::iterator res_it = NULL;
         for (list<job>::iterator it = jobs.begin(); it != jobs.end(); ++it) {
             int itID = it->getID();
             if (itID == id) {
@@ -183,9 +187,9 @@ public:
     }
 
     bool isInJList(int idj) {
-        it = getJobFromId(idj);  //TODO should it be "list<job>::iterator it"?
+        list<job>::iterator it = getJobFromId(idj);
 
-        if (it = jobs.end())
+        if (it == jobs.end())
             return false;
         return true;
 
@@ -211,7 +215,24 @@ public:
         return last;
     }
 
+    list<job>::iterator LastSent2bg() //TODO check that this is how "job is in the bg" is defined
 
+    {
+        int maxtime = -1;
+        list<job>::iterator last = jobs.begin();
+
+        for (list<job>::iterator it = jobs.begin(); it != jobs.end(); ++it) {
+            if (it->isSus()) {
+                int sTime = it->getSuspendedTime();
+                if (sTime > maxtime) {
+                    last = it;
+                    maxtime = sTime;
+                }
+            }
+
+        }
+        return last;
+    }
     void eraseFromList(int id) //erase from job list
     {
         for (list<job>::iterator it = jobs.begin(); it != jobs.end(); ++it) {

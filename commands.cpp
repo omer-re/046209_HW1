@@ -92,6 +92,45 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, string &prev_path, smash
     }
         /*************************************************/
     else if (!strcmp(cmd, "fg")) {
+        //if arg[2]==NULL find last process that was paused
+        //print name of process
+        //move process with command number(arg[2]) to bg
+        bool have_stopped = job::suspended_counter;
+
+        list<job>::iterator iter, command = smash1.LastjobSuspended();
+        switch (num_arg) {
+
+            case 0:  // handle the last job suspended, move to bg
+                if (job::suspended_counter) {  // TODO make sure such field exists
+                    // checking if there was a job suspended
+                    have_stopped = true;
+                }
+                if (!have_stopped && job::job_counter)  // TODO check such method exists
+                    // in case jobs list isn't empty but none was suspended
+
+                    break;
+
+            case 1: // find the relevant job and move it to fg
+                command = smash1.getJobFromId(atoi(args[1]));
+                if (command != smash1.getListEnd()) {   //process found
+                    waitpid(command->getPID(), NULL, 0);  // TODO this isn't the right syntax
+
+                    break;
+
+                }
+
+                if (command == smash1.getListEnd()) {  //no such process
+                    // TODO  illegal_cmd = true;?
+                    // TODO printing something?
+                    break;
+                } else
+                    break;
+
+            default:
+                illegal_cmd = true;
+                break;
+        }
+
 
     }
         /*************************************************/
@@ -101,7 +140,7 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, string &prev_path, smash
         //move process with command number(arg[2]) to bg
         bool have_stopped = job::suspended_counter;
 
-        list<job>::iterator iter, command = smash1.LastjobSuspended());
+        list<job>::iterator iter, command = smash1.LastjobSuspended();
         switch (num_arg) {
 
             case 0:  // handle the last job suspended, move to bg
@@ -132,7 +171,7 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, string &prev_path, smash
                 }
 
 
-            } else // job was already running
+            } else // job was already running in bg
             {
                 printf("smash error: > job [%d] is already running in the background\n", command->first);
             }
