@@ -174,7 +174,6 @@ public:
     }
 
     list<job>::iterator getJobFromId(int id) { //check if the job ID exist in the list and return the job
-        list<job>::iterator res_it = NULL;
         for (list<job>::iterator it = jobs.begin(); it != jobs.end(); ++it) {
             int itID = it->getID();
             if (itID == id) {
