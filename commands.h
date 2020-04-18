@@ -81,7 +81,7 @@ public:
         return jobName;
     }
 
-    //sets:
+    //setters:
     void jobSuspended() {
         susTime = time(NULL);
         suspended = true;
@@ -90,6 +90,7 @@ public:
 
     void jpbUnsuspended() {
         suspended = false;
+        // TODO Should we zero BG time here or continue it?
         suspended_counter--;
     }
 
@@ -250,6 +251,8 @@ int BgCmd(char *lineSize, void *jobs, std::string prev_path);
 
 int ExeCmd(void *jobs, char *lineSize, char *cmdString, string &prev_path, smash &smash1);
 
-void ExeExternal(char *args[MAX_ARG], char *cmdString);
+void ExeExternal(char *args[MAX_ARG], char *cmdString, smash &smash1);
+
+extern int waitingPID;
 
 #endif

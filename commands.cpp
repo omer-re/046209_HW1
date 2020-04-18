@@ -97,7 +97,8 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, string &prev_path, smash
         //move process with command number(arg[2]) to bg
         bool have_stopped = job::suspended_counter;
 
-        list<job>::iterator iter, command = smash1.LastjobSuspended();
+        list<job>::iterator iter;
+        list<job>::iterator command = smash1.LastjobSuspended();
         switch (num_arg) {
 
             case 0:  // handle the last job suspended, move to bg
@@ -105,33 +106,34 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, string &prev_path, smash
                     // checking if there was a job suspended
                     have_stopped = true;
                 }
-                if (!have_stopped && job::job_counter)  // TODO check such method exists
+                if (!have_stopped && job::job_counter) {  // TODO check such method exists
                     // in case jobs list isn't empty but none was suspended
-
+                    illegal_cmd = true;
                     break;
+                }
 
             case 1: // find the relevant job and move it to fg
                 command = smash1.getJobFromId(atoi(args[1]));
-                if (command != smash1.getListEnd()) {   //process found
-                    waitpid(command->getPID(), NULL, 0);  // TODO this isn't the right syntax
-
-                    break;
-
-                }
-
-                if (command == smash1.getListEnd()) {  //no such process
-                    // TODO  illegal_cmd = true;?
-                    // TODO printing something?
-                    break;
-                } else
-                    break;
+                break;
 
             default:
                 illegal_cmd = true;
                 break;
         }
+        if (command == smash1.getListEnd())    //no such process
+            illegal_cmd = true;
 
+        if (!illegal_cmd) //process found
+        {
 
+            if (!command->isSus() || send_sig(command->getPID(), SIGCONT) == 0) // if job was stopped release it
+            {
+                printf("%s\n", command->getJobName().c_str());
+                waitingPID = command->getPID();
+                while (waitpid(command->getPID(), NULL, WUNTRACED) == -1);
+            }
+            waitingPID = 0;
+        }
     }
         /*************************************************/
     else if (!strcmp(cmd, "bg")) {
@@ -164,10 +166,10 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, string &prev_path, smash
         if (!illegal_cmd) {
             if (job::suspended_counter) {  // some job suspended
 
-                if (send_sig(command._PID, SIGCONT) == 0) {
-                    command->second._stopped = false;   // TODO fit to our functions and data set
+                if (send_sig(command->getPID(), SIGCONT) == 0) {
+                    command->jpbUnsuspended();
                     command->second._bgTime = time(0);      // TODO fit to our functions and data set
-                    printf("%s\n", command->second._name.c_str()); // TODO fit to our functions and data set
+                    printf("%s\n", command->getJobName().c_str()); // TODO fit to our functions and data set
                 }
 
 
@@ -245,7 +247,7 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, string &prev_path, smash
 
     else // external command
     {
-        ExeExternal(args, cmdString);
+        ExeExternal(args, cmdString, smash1);
         return 0;
     }
     if (illegal_cmd == true) {
@@ -261,35 +263,42 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, string &prev_path, smash
 // Parameters: external command arguments, external command string
 // Returns: void
 //**************************************************************************************
-void ExeExternal(char *args[MAX_ARG], char *cmdString) {
+void ExeExternal(char *args[MAX_ARG], char *cmdString, smash &smash1) {
     int pID;
+    // in case of error, the err msg will be as follow
+    string err_string("smash error:> \\");
+    err_string += args[0];
+    err_string += "\" - ";
     switch (pID = fork()) {
         case -1:
             // Add your code here (error)
-
-            /*
-            your code
-            */
+            // new process wasn't launched properly
+            perror(err_string.c_str());
             break;
         case 0 :
             // Child Process
             setpgrp();
 
             // Add your code here (execute an external command)
-
-            /*
-            your code
-            */
+            execvp(args[0], args);
+            // we are not supposed to get here,
+            // it means the child process failed
+            perror(err_string.c_str());
+            exit(-1);
             break;
 
 
         default:
-            // Add your code here
+            //  Father code
+            //  if it's not on background - we will wait for it
+            if (!bg)
 
-            /*
-            your code
-            */
-            break;
+                // Add your code here
+
+                /*
+                your code
+                */
+                break;
 
     }
 }
@@ -336,20 +345,6 @@ int BgCmd(char *lineSize, void *jobs, std::string prev_path) {
     }
     return -1;
 }
-
-// checksum function
-int bsdChecksumFromFile(FILE *fp) /* The file handle for input data */
-{
-    int checksum = 0;             /* The checksum mod 2^16. */
-
-    for (int ch = getc(fp); ch != EOF; ch = getc(fp)) {
-        checksum = (checksum >> 1) + ((checksum & 1) << 15);
-        checksum += ch;
-        checksum &= 0xffff;       /* Keep it within bounds. */
-    }
-    return checksum;
-}
-
 
 bool areFilesEqual(fstream *a, fstream *b) {
     int fileSize1 = sizeOfFile(a);

@@ -30,6 +30,7 @@ char lineSize[MAX_LINE_SIZE];
 
 smash smash1;
 int job::job_counter = 1;
+int waitingPID;
 //**************************************************************************************
 // function name: main
 // Description: main function of smash. get command from user and calls command functions
@@ -51,25 +52,25 @@ int main(int argc, char *argv[])
 
 	/************************************/
 
-	/************************************/
-	// Init globals 
+    /************************************/
+    // Init globals
 
 
-	
-	L_Fg_Cmd =(char*)malloc(sizeof(char)*(MAX_LINE_SIZE+1));
-	if (L_Fg_Cmd == NULL) 
-			exit (-1); 
-	L_Fg_Cmd[0] = '\0';
-	
-    	while (1)
-    	{
-            printf("smash > ");
-            fgets(lineSize, MAX_LINE_SIZE, stdin);
-            strcpy(cmdString, lineSize);
-            cmdString[strlen(lineSize) - 1] = '\0';
-            // perform a complicated Command
-            if (!ExeComp(lineSize)) continue;
-            // background command
+
+    L_Fg_Cmd = (char *) malloc(sizeof(char) * (MAX_LINE_SIZE + 1));
+    if (L_Fg_Cmd == NULL)
+        exit(-1);
+    L_Fg_Cmd[0] = '\0';
+    waitingPID = 0;
+
+    while (1) {
+        printf("smash > ");
+        fgets(lineSize, MAX_LINE_SIZE, stdin);
+        strcpy(cmdString, lineSize);
+        cmdString[strlen(lineSize) - 1] = '\0';
+        // perform a complicated Command
+        if (!ExeComp(lineSize)) continue;
+        // background command
             if (!BgCmd(lineSize, jobs, prev_path)) continue;
             // built in commands
             ExeCmd(jobs, lineSize, cmdString, prev_path, smash1);
