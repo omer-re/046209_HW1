@@ -32,7 +32,7 @@ int send_sig(pid_t pid, int signal) {
 // Parameters: pointer to jobs, command std::string
 // Returns: 0 - success,1 - failure
 //**************************************************************************************
-int ExeCmd(void *jobs, char *lineSize, char *cmdString, string &prev_path, smash &smash1) {
+int ExeCmd(void *jobs, char *lineSize, char *cmdString, bool bg, string &prev_path, smash &smash1) {
     char *cmd;
     char *args[MAX_ARG];
     char pwd[MAX_LINE_SIZE];
@@ -111,7 +111,6 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, string &prev_path, smash
         //if arg[2]==NULL find last process that was paused
         //print name of process
         //move process with command number(arg[2]) to bg
-        bool have_stopped = job::suspended_counter;
 
         list<job>::iterator iter;
         list<job>::iterator command;
@@ -145,14 +144,14 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, string &prev_path, smash
             {
                 printf("%s\n", command->getJobName().c_str());
                 waitingPID = command->getPID();
-                smash1.setLastProcessOnFg(command->getID()).;
+                smash1.setLastProcessOnFg(command->getID());
                 while (waitpid(command->getPID(), NULL, WUNTRACED) == -1);
                 smash1.eraseFromList(command->getID());
             }
             waitingPID = 0;
         } else // no jobs / all are suspended
-        {
-            printf("smash error: > job [%d] is already running in the background\n", command->first);
+        {   // TODO other err message if no jobs on the list?
+            printf("smash error: > job [%d] is already running in the background\n", command->getID());
         }
     }
         /*************************************************/
@@ -190,7 +189,7 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, string &prev_path, smash
 
         } else // job was already running in bg
         {
-            printf("smash error: > job [%d] is already running in the background\n", command->first);
+            printf("smash error: > job [%d] is already running in the background\n", command->getID());
         }
     }
 
@@ -213,7 +212,6 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, string &prev_path, smash
             if (src.rdbuf() == NULL) {
                 perror("smash error:> ");
                 return (-1);
-                break;
             }
             ofstream dst(args[2], ios::binary);
             dst << src.rdbuf();
@@ -258,7 +256,7 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, string &prev_path, smash
 
     else // external command
     {
-        ExeExternal(args, cmdString, smash1);
+        ExeExternal(args, cmdString, smash1, bg);
         return 0;
     }
     if (illegal_cmd == true) {
@@ -274,7 +272,7 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, string &prev_path, smash
 // Parameters: external command arguments, external command string
 // Returns: void
 //**************************************************************************************
-void ExeExternal(char *args[MAX_ARG], char *cmdString, smash &smash1) {
+void ExeExternal(char *args[MAX_ARG], char *cmdString, smash &smash1, bool bg) {
     int pID;
     // in case of error, the err msg will be as follow
     string err_string("smash error:> \\");

@@ -85,13 +85,13 @@ public:
     void jobSuspended() {
         susTime = time(NULL);
         suspended = true;
-        suspended_counter++;
+        this->suspended_counter += 1;
     }
 
     void jpbUnsuspended() {
         suspended = false;
         // TODO Should we zero BG time here or continue it?
-        suspended_counter--;
+        this->suspended_counter -= 1;
     }
 
 
@@ -114,12 +114,12 @@ public:
         ID = getpid();
         jobs.clear();
         history.clear();
+
         // somthing with previous path
 
         //define the fg
 
     }
-
     int getLastProcessOnFg() const {
         return last_processID_on_fg;
     }
@@ -252,9 +252,9 @@ int ExeComp(char *lineSize);
 
 int BgCmd(char *lineSize, void *jobs, std::string prev_path);
 
-int ExeCmd(void *jobs, char *lineSize, char *cmdString, string &prev_path, smash &smash1);
+int ExeCmd(void *jobs, char *lineSize, char *cmdString, bool bg, string &prev_path, smash &smash1);
 
-void ExeExternal(char *args[MAX_ARG], char *cmdString, smash &smash1);
+void ExeExternal(char *args[MAX_ARG], char *cmdString, smash &smash1, bool bg);
 
 extern int waitingPID;
 
