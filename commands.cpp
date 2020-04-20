@@ -1,14 +1,16 @@
 //		commands.c
 //********************************************
 #include "commands.h"
+#include "signals.h"
+
 
 using namespace std;
-
-int bsdChecksumFromFile(FILE *fp);
+extern smash smash1;
 
 bool areFilesEqual(fstream *, fstream *);
 
 int sizeOfFile(fstream *);
+
 //********************************************
 // function name: send_sig
 // Description: sends "signal" to "pid", and prints out the information if successful
@@ -64,7 +66,7 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, bool bg, string &prev_pa
 
             if (!strcmp(args[1], "-")) {
                 chdir(prev_path.c_str());
-                cout << prev_path;
+                cout << prev_path << endl;
                 prev_path = pwd;
             } else if (chdir(args[1]) == -1) {
                 printf("smash error: > %s - path not found\n", args[1]);
@@ -88,13 +90,48 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, bool bg, string &prev_pa
         /*************************************************/
     else if (!strcmp(cmd, "history")) {
 
+        if (num_arg == 0) {
+            smash1.printHist();
+        } else
+            illegal_cmd = true;
+
     }
         /*************************************************/
     else if (!strcmp(cmd, "jobs")) {
 
+        if (num_arg == 0) {
+            smash1.printJobList();
+
+        } else
+            illegal_cmd = true;
+
     }
         /*************************************************/
     else if (!strcmp(cmd, "kill")) {
+        if (num_arg == 2) {
+            int JobId = atoi(args[2]);
+            if (!smash1.isInJList(JobId)) {    //job doesn't exist
+                cout << "smash error:> kill job - job does not exist" << endl;
+            } else {
+                //job exist-
+                int signum = atoi(args[1]);
+                list<job>::iterator it = smash1.getJobFromId(JobId);
+
+                int Jpid = it->getPID();
+                int k = kill(Jpid, signum);
+                if (k == -1) {
+                    cout << "kill job - cannot send signal" << endl;
+                }
+                // else- signal sent
+                cout << "signal " << strdup(sys_siglist[signum]) << " was sent to pid " << Jpid << endl;
+
+                // check
+            }
+
+        } else {
+            illegal_cmd = true;
+
+        }
 
     }
         /*************************************************/
@@ -256,7 +293,7 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, bool bg, string &prev_pa
 
     else // external command
     {
-        ExeExternal(args, cmdString, smash1, bg);
+        ExeExternal(args, cmdString, false);
         return 0;
     }
     if (illegal_cmd == true) {
@@ -272,7 +309,7 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, bool bg, string &prev_pa
 // Parameters: external command arguments, external command string
 // Returns: void
 //**************************************************************************************
-void ExeExternal(char *args[MAX_ARG], char *cmdString, smash &smash1, bool bg) {
+void ExeExternal(char *args[MAX_ARG], char *cmdString, bool bg) {
     int pID;
     // in case of error, the err msg will be as follow
     string err_string("smash error:> \\");
@@ -282,32 +319,34 @@ void ExeExternal(char *args[MAX_ARG], char *cmdString, smash &smash1, bool bg) {
         case -1:
             // Add your code here (error)
             // new process wasn't launched properly
-            perror(err_string.c_str());
+            perror("ERROR- fork");
+            exit(1);
             break;
         case 0 :
             // Child Process
             setpgrp();
-
             // Add your code here (execute an external command)
-            execvp(args[0], args);
-            // we are not supposed to get here,
-            // it means the child process failed
-            perror(err_string.c_str());
-            exit(-1);
+            if (execvp(args[0], args) == -1) {
+                perror("exec ERROR");
+                exit(1);
+            } else {
+                exit(0);
+            }
             break;
-
-
         default:
             //  Father code
+            string name = args[0];
             //  if it's not on background - we will wait for it
-            if (!bg)
-
-                // Add your code here
-
-                /*
-                your code
-                */
-                break;
+            if (!bg) {
+                job BG = job(pID, name, false);
+                smash1.addJob(BG);
+                //waitpid
+            } else {
+                job FG = job(pID, name, false);
+                smash1.setFgJob(FG);
+                ///waitpid
+            }
+            break;
 
     }
 }
@@ -346,10 +385,16 @@ int BgCmd(char *lineSize, void *jobs, std::string prev_path) {
     if (lineSize[strlen(lineSize) - 2] == '&') {
         lineSize[strlen(lineSize) - 2] = '\0';
         // Add your code here (execute a in the background)
+        Command = std::strtok(lineSize, delimiters);
+        if (Command == NULL)
+            return 0;
+        args[0] = Command;
+        for (int i = 1; i < MAX_ARG; i++) {
+            args[i] = std::strtok(NULL, delimiters);
 
-        /*
-        your code
-        */
+        }
+        ExeExternal(args, Command, true);
+        return 0;
 
     }
     return -1;

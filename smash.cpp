@@ -15,7 +15,6 @@ main file. This file contains the main function of smash
 #include <string>
 //#include <cstring>
 #include <iostream>
-#include <iostream>
 #include <sstream>
 
 #define MAX_LINE_SIZE 80
@@ -43,30 +42,37 @@ int waitingPID;
 //**************************************************************************************
 int main(int argc, char *argv[]) {
     char cmdString[MAX_LINE_SIZE];
-
-    std::string prev_path;
+    string prev_path;
 
     //signal declaretions
     //NOTE: the signal handlers and the function/s that sets the handler should be found in siganls.c
     /* add your code here */
+    struct sigaction stop, term;
 
+    stop.sa_handler = &StopHandler;
+    sigfillset(&stop.sa_mask);
+    stop.sa_flags = 0;
+
+    term.sa_handler = &TerminateHandler;
+    sigfillset(&term.sa_mask);
+    term.sa_flags = 0;
     /************************************/
     //NOTE: the signal handlers and the function/s that sets the handler should be found in siganls.c
     //set your signal handlers here
-    /* add your code here */
-
+    sigaction(SIGINT, &term, NULL);
+    sigaction(SIGTSTP, &stop, NULL);
     /************************************/
 
     /************************************/
     // Init globals
-
-
-
     L_Fg_Cmd = (char *) malloc(sizeof(char) * (MAX_LINE_SIZE + 1));
     if (L_Fg_Cmd == NULL)
         exit(-1);
     L_Fg_Cmd[0] = '\0';
     waitingPID = 0;
+    suspended_counter = 0;
+    job_counter = 0;
+    //getcwd(prev_path, sizeof(MAX_LINE_SIZE*sizeof(char)));
 
     while (1) {
         printf("smash > ");

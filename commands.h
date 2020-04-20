@@ -1,12 +1,10 @@
 #ifndef _COMMANDS_H
 #define _COMMANDS_H
-#include <unistd.h> 
+
+#include <unistd.h>
 #include <stdio.h>
-//#include <time.h>
 #include <stdlib.h>
 #include <signal.h>
-//#include <string.h>
-
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/time.h>
@@ -22,8 +20,8 @@
 
 #define MAX_LINE_SIZE 80
 #define MAX_ARG 20
-using namespace std;
 #define MAX_HISTORY 50
+using namespace std;
 
 extern int waitingPID;
 extern int suspended_counter;
@@ -103,19 +101,19 @@ private:
     pid_t ID;
     vector<string> history;
     int last_processID_on_fg;  //foreground job
+    job fg_;  //foreground job
     //another val for previous path
 
-public:
-    smash()//fg_ = new job(-1, "-", false)
-    {
 
-        //fg_ = new job(-1, "-", false);
-        //constructor
+public:
+    smash() {
+        fg_ = job();
         ID = getpid();
         jobs.clear();
         history.clear();
 
         // somthing with previous path
+
 
         //define the fg
 
@@ -209,7 +207,7 @@ public:
 
     {
         int maxtime = -1;
-        list<job>::iterator last = jobs.begin();
+        list<job>::iterator last = jobs.end();
 
         for (list<job>::iterator it = jobs.begin(); it != jobs.end(); ++it) {
             if (it->isSus()) {
@@ -223,6 +221,39 @@ public:
         }
         return last;
     }
+
+    void jobStatus(int jpid) {
+        int status;
+        int result = waitpid(jpid, &status, WNOHANG);
+        if (result == jpid) {
+            eraseJobFromList(jpid);
+
+        }
+    }
+
+    void updateJobs() {
+        for (list<job>::iterator it = jobs.begin(); it != jobs.end(); ++it) {
+            jobStatus(it->getPID());
+
+        }
+
+    }
+
+
+    void eraseJobFromList(int pid) //erase from job list
+    {
+        for (list<job>::iterator it = jobs.begin(); it != jobs.end(); ++it) {
+            if (it->getPID() == pid)
+                it = jobs.erase(it);
+
+        }
+
+    }
+
+    void addJob(job j) {
+        jobs.push_back(j);
+    }
+
 
     int LastInBg() //TODO check that this is how "job is in the bg" is defined
     {
@@ -247,15 +278,25 @@ public:
 
     }
 
+    job fgJob() {
+        return fg_;
+    }
+
+    void setFgJob(job j) {
+        fg_ = j;
+    }
+
+    void removeFromFG() {
+        fg_ = job();
+    }
 };
 
 int ExeComp(char *lineSize);
 
 int BgCmd(char *lineSize, void *jobs, std::string prev_path);
 
-int ExeCmd(void *jobs, char *lineSize, char *cmdString, bool bg, string &prev_path, smash &smash1);
+int ExeCmd(void *jobs, char *lineSize, char *cmdString, std::string &prev_path);
 
-void ExeExternal(char *args[MAX_ARG], char *cmdString, smash &smash1, bool bg);
-
+void ExeExternal(char *args[MAX_ARG], char *cmdString, bool bg);
 
 #endif
