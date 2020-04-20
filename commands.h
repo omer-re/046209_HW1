@@ -99,16 +99,16 @@ public:
 
 class smash {
 private:
-    list <job> jobs;
+    list<job> jobs;
     pid_t ID;
-    vector <string> history;
-    job fg_;  //foreground job
+    vector<string> history;
+    int last_processID_on_fg;  //foreground job
     //another val for previous path
 
 public:
     smash()//fg_ = new job(-1, "-", false)
     {
-        fg_ = job();
+
         //fg_ = new job(-1, "-", false);
         //constructor
         ID = getpid();
@@ -118,6 +118,14 @@ public:
 
         //define the fg
 
+    }
+
+    int getLastProcessOnFg() const {
+        return last_processID_on_fg;
+    }
+
+    void setLastProcessOnFg(int lastProcessOnFg) {
+        last_processID_on_fg = lastProcessOnFg;
     }
 
     ~smash() {  //d'tor
@@ -142,7 +150,7 @@ public:
     }
 
     const list<job>::iterator getListEnd() {
-        return jobs.end();
+        return jobs.end();  //TODO is this a valid value? if not- needs a return value for last job on list for FG func
     }
 
     void printJobList() {
@@ -215,24 +223,19 @@ public:
         return last;
     }
 
-    list<job>::iterator LastSent2bg() //TODO check that this is how "job is in the bg" is defined
-
+    int LastInBg() //TODO check that this is how "job is in the bg" is defined
     {
-        int maxtime = -1;
-        list<job>::iterator last = jobs.begin();
-
+        int last = -1;
         for (list<job>::iterator it = jobs.begin(); it != jobs.end(); ++it) {
-            if (it->isSus()) {
-                int sTime = it->getSuspendedTime();
-                if (sTime > maxtime) {
-                    last = it;
-                    maxtime = sTime;
-                }
+            // TODO make sure it isn't last on fg!
+            if (!it->isSus() && it->getID() != getLastProcessOnFg()) // unsuspended and not the last one n the fg
+            {
+                last = it->getID();
             }
-
         }
         return last;
     }
+
     void eraseFromList(int id) //erase from job list
     {
         for (list<job>::iterator it = jobs.begin(); it != jobs.end(); ++it) {

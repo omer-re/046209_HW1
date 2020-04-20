@@ -9,6 +9,22 @@ int bsdChecksumFromFile(FILE *fp);
 bool areFilesEqual(fstream *, fstream *);
 
 int sizeOfFile(fstream *);
+//********************************************
+// function name: send_sig
+// Description: sends "signal" to "pid", and prints out the information if successful
+// Parameters: pid, signal to send
+// Returns: 0 - success,-1 - failure
+//**************************************************************************************
+int send_sig(pid_t pid, int signal) {
+    int kill_res = kill(pid, signal);
+    if (kill_res == 0) {
+        printf("smash > signal %s was sent to pid %d\n", strsignal(signal), pid);
+        return 0;
+    }
+    perror("smash error: >");
+    return -1;
+
+}
 
 //********************************************
 // function name: ExeCmd
@@ -98,19 +114,19 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, string &prev_path, smash
         bool have_stopped = job::suspended_counter;
 
         list<job>::iterator iter;
-        list<job>::iterator command = smash1.LastjobSuspended();
+        list<job>::iterator command;
         switch (num_arg) {
 
-            case 0:  // handle the last job suspended, move to bg
-                if (job::suspended_counter) {  // TODO make sure such field exists
+            case 0:  // handle the last job suspended, move to fg
+                if (smash1.LastInBg() != -1) {  // TODO make sure such field exists
                     // checking if there was a job suspended
-                    have_stopped = true;
+                    command = smash1.getJobFromId(smash1.LastInBg());
                 }
-                if (!have_stopped && job::job_counter) {  // TODO check such method exists
+                if (smash1.LastInBg() == -1) {  // TODO check such method exists
                     // in case jobs list isn't empty but none was suspended
                     illegal_cmd = true;
-                    break;
                 }
+                break;
 
             case 1: // find the relevant job and move it to fg
                 command = smash1.getJobFromId(atoi(args[1]));
@@ -121,18 +137,22 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, string &prev_path, smash
                 break;
         }
         if (command == smash1.getListEnd())    //no such process
-            illegal_cmd = true;
-
+            illegal_cmd = true;  // TODO redundant?
         if (!illegal_cmd) //process found
         {
 
-            if (!command->isSus() || send_sig(command->getPID(), SIGCONT) == 0) // if job was stopped release it
+            if (send_sig(command->getPID(), SIGCONT) == 0) // if job was stopped release it
             {
                 printf("%s\n", command->getJobName().c_str());
                 waitingPID = command->getPID();
+                smash1.setLastProcessOnFg(command->getID()).;
                 while (waitpid(command->getPID(), NULL, WUNTRACED) == -1);
+                smash1.eraseFromList(command->getID());
             }
             waitingPID = 0;
+        } else // no jobs / all are suspended
+        {
+            printf("smash error: > job [%d] is already running in the background\n", command->first);
         }
     }
         /*************************************************/
@@ -140,22 +160,21 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, string &prev_path, smash
         //if arg[2]==NULL find last process that was paused
         //print name of process
         //move process with command number(arg[2]) to bg
-        bool have_stopped = job::suspended_counter;
 
         list<job>::iterator iter, command = smash1.LastjobSuspended();
         switch (num_arg) {
-
-            case 0:  // handle the last job suspended, move to bg
-                if (job::suspended_counter) {  // TODO make sure such field exists
+            case 0:  // no args- find last process sent to bg
+                if (job::suspended_counter) {  // case there are jobs in the bg
                     // checking if there was a job suspended
-                    have_stopped = true;
+                    command = smash1.LastjobSuspended();
+                    //have_stopped = true;
                 }
-                if (!have_stopped && job::job_counter)  // TODO check such method exists
+                if (!job::suspended_counter && job::job_counter) { // TODO check what to do with it
                     // in case jobs list isn't empty but none was suspended
-
+                    illegal_cmd = true;
                     break;
-
-            case 1: // find the relevant job and move it
+                }
+            case 1: // find the relevant job
                 command = smash1.getJobFromId(atoi(args[1]));
                 break;
 
@@ -164,25 +183,17 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, string &prev_path, smash
                 break;
         }
         if (!illegal_cmd) {
-            if (job::suspended_counter) {  // some job suspended
-
-                if (send_sig(command->getPID(), SIGCONT) == 0) {
-                    command->jpbUnsuspended();
-                    command->second._bgTime = time(0);      // TODO fit to our functions and data set
-                    printf("%s\n", command->getJobName().c_str()); // TODO fit to our functions and data set
-                }
-
-
-            } else // job was already running in bg
-            {
-                printf("smash error: > job [%d] is already running in the background\n", command->first);
+            if (send_sig(command->getPID(), SIGCONT) == 0) {
+                command->jpbUnsuspended();
+                printf("%s\n", command->getJobName().c_str()); // TODO fit to our functions and data set
             }
 
-
+        } else // job was already running in bg
+        {
+            printf("smash error: > job [%d] is already running in the background\n", command->first);
         }
-
-
     }
+
         /*************************************************/
     else if (!strcmp(cmd, "quit")) {
 
