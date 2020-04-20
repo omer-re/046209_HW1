@@ -25,7 +25,9 @@
 using namespace std;
 #define MAX_HISTORY 50
 
-using namespace std;
+extern int waitingPID;
+extern int suspended_counter;
+extern int job_counter;
 
 class job {
 private:
@@ -39,8 +41,7 @@ private:
 
 
 public:
-    static int job_counter;
-    static int suspended_counter;
+
 
     //Constructor
     job(int jpid, string name, bool sus) : id(job_counter++), pid(jpid), jobName(name), suspended(sus) {
@@ -85,13 +86,12 @@ public:
     void jobSuspended() {
         susTime = time(NULL);
         suspended = true;
-        this->suspended_counter += 1;
+        suspended_counter++;
     }
 
     void jpbUnsuspended() {
         suspended = false;
-        // TODO Should we zero BG time here or continue it?
-        this->suspended_counter -= 1;
+        suspended_counter--;
     }
 
 
@@ -120,6 +120,7 @@ public:
         //define the fg
 
     }
+
     int getLastProcessOnFg() const {
         return last_processID_on_fg;
     }
@@ -256,6 +257,5 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, bool bg, string &prev_pa
 
 void ExeExternal(char *args[MAX_ARG], char *cmdString, smash &smash1, bool bg);
 
-extern int waitingPID;
 
 #endif

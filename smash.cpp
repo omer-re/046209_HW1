@@ -29,8 +29,10 @@ char lineSize[MAX_LINE_SIZE];
 
 
 smash smash1;
-//int job::job_counter = 1;
+int suspended_counter;
+int job_counter;
 int waitingPID;
+
 
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "EndlessLoop"

@@ -163,12 +163,12 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, bool bg, string &prev_pa
         list<job>::iterator iter, command = smash1.LastjobSuspended();
         switch (num_arg) {
             case 0:  // no args- find last process sent to bg
-                if (job::suspended_counter) {  // case there are jobs in the bg
+                if (suspended_counter) {  // case there are jobs in the bg
                     // checking if there was a job suspended
                     command = smash1.LastjobSuspended();
                     //have_stopped = true;
                 }
-                if (!job::suspended_counter && job::job_counter) { // TODO check what to do with it
+                if (!suspended_counter && job_counter) { // TODO check what to do with it
                     // in case jobs list isn't empty but none was suspended
                     illegal_cmd = true;
                     break;
