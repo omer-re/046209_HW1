@@ -28,6 +28,7 @@ int send_sig(pid_t pid, int signal) {
 
 }
 
+
 //********************************************
 // function name: ExeCmd
 // Description: interperts and executes built-in commands
@@ -115,9 +116,14 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, bool bg, char *prev_path
         /*************************************************/
     else if (!strcmp(cmd, "kill")) {
         if (num_arg == 2) {
+            if (!has_only_digits(args[1]) || !has_only_digits(args[2])) {
+                cout << "smash error:> kill job - job does not exist" << endl;
+                // TODO add illegal command=true?
+            }
             int JobId = atoi(args[2]);
             if (!smash1.isInJList(JobId)) {    //job doesn't exist
                 cout << "smash error:> kill job - job does not exist" << endl;
+                // TODO add illegal command=true?
             } else {
                 //job exist-
                 int signum = atoi(args[1]);
@@ -171,6 +177,11 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, bool bg, char *prev_path
                 break;
 
             case 1: // find the relevant job and move it to fg
+                if (!has_only_digits(args[1])) {
+                    cout << "smash error:> kill job - job does not exist" << endl;
+                    illegal_cmd = true;
+                    break;
+                }
                 command = smash1.getJobFromId(atoi(args[1]));
                 break;
 
@@ -217,6 +228,11 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, bool bg, char *prev_path
                     break;
                 }
             case 1: // find the relevant job
+                if (!has_only_digits(args[1])) {
+                    cout << "smash error:> kill job - job does not exist" << endl;
+                    illegal_cmd = true;
+                    break;
+                }
                 command = smash1.getJobFromId(atoi(args[1]));
                 break;
 
