@@ -1,12 +1,10 @@
 #ifndef _COMMANDS_H
 #define _COMMANDS_H
-#include <unistd.h> 
+
+#include <unistd.h>
 #include <stdio.h>
-//#include <time.h>
 #include <stdlib.h>
 #include <signal.h>
-//#include <string.h>
-
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/time.h>
@@ -22,10 +20,16 @@
 
 #define MAX_LINE_SIZE 80
 #define MAX_ARG 20
-using namespace std;
 #define MAX_HISTORY 50
-
 using namespace std;
+
+extern int waitingPID;
+extern int suspended_counter;
+extern int job_counter;
+
+bool has_only_digits(const string s) {
+    return s.find_first_not_of("0123456789") == string::npos;
+}
 
 class job {
 private:
@@ -39,7 +43,7 @@ private:
 
 
 public:
-    static int job_counter;
+
 
     //Constructor
     job(int jpid, string name, bool sus) : id(job_counter++), pid(jpid), jobName(name), suspended(sus) {
@@ -80,14 +84,16 @@ public:
         return jobName;
     }
 
-    //sets:
+    //setters:
     void jobSuspended() {
         susTime = time(NULL);
         suspended = true;
+        suspended_counter++;
     }
 
     void jpbUnsuspended() {
         suspended = false;
+        suspended_counter--;
     }
 
 
@@ -95,25 +101,34 @@ public:
 
 class smash {
 private:
-    list <job> jobs;
+    list<job> jobs;
     pid_t ID;
-    vector <string> history;
+    vector<string> history;
+    int last_processID_on_fg;  //foreground job
     job fg_;  //foreground job
     //another val for previous path
 
+
 public:
-    smash()//fg_ = new job(-1, "-", false)
-    {
+    smash() {
         fg_ = job();
-        //fg_ = new job(-1, "-", false);
-        //constructor
         ID = getpid();
         jobs.clear();
         history.clear();
+
         // somthing with previous path
+
 
         //define the fg
 
+    }
+
+    int getLastProcessOnFg() const {
+        return last_processID_on_fg;
+    }
+
+    void setLastProcessOnFg(int lastProcessOnFg) {
+        last_processID_on_fg = lastProcessOnFg;
     }
 
     ~smash() {  //d'tor
@@ -121,7 +136,6 @@ public:
         history.clear();
     }
     // smash funcs
-
 
     int getSid() { //get ID
         return ID;
@@ -136,7 +150,10 @@ public:
 
             }
         }
+    }
 
+    const list<job>::iterator getListEnd() {
+        return jobs.end();  //TODO is this a valid value? if not- needs a return value for last job on list for FG func
     }
 
     void printJobList() {
@@ -181,9 +198,9 @@ public:
     }
 
     bool isInJList(int idj) {
-        it = getJobFromId(idj);
+        list<job>::iterator it = getJobFromId(idj);
 
-        if (it = jobs.end())
+        if (it == jobs.end())
             return false;
         return true;
 
@@ -194,7 +211,7 @@ public:
 
     {
         int maxtime = -1;
-        list<job>::iterator last = jobs.begin();
+        list<job>::iterator last = jobs.end();
 
         for (list<job>::iterator it = jobs.begin(); it != jobs.end(); ++it) {
             if (it->isSus()) {
@@ -209,6 +226,51 @@ public:
         return last;
     }
 
+    void jobStatus(int jpid) {
+        int status;
+        int result = waitpid(jpid, &status, WNOHANG);
+        if (result == jpid) {
+            eraseJobFromList(jpid);
+
+        }
+    }
+
+    void updateJobs() {
+        for (list<job>::iterator it = jobs.begin(); it != jobs.end(); ++it) {
+            jobStatus(it->getPID());
+
+        }
+
+    }
+
+
+    void eraseJobFromList(int pid) //erase from job list
+    {
+        for (list<job>::iterator it = jobs.begin(); it != jobs.end(); ++it) {
+            if (it->getPID() == pid)
+                it = jobs.erase(it);
+
+        }
+
+    }
+
+    void addJob(job j) {
+        jobs.push_back(j);
+    }
+
+
+    int LastInBg() //TODO check that this is how "job is in the bg" is defined
+    {
+        int last = -1;
+        for (list<job>::iterator it = jobs.begin(); it != jobs.end(); ++it) {
+            // TODO make sure it isn't last on fg!
+            if (!it->isSus() && it->getID() != getLastProcessOnFg()) // unsuspended and not the last one n the fg
+            {
+                last = it->getID();
+            }
+        }
+        return last;
+    }
 
     void eraseFromList(int id) //erase from job list
     {
@@ -220,14 +282,25 @@ public:
 
     }
 
+    job fgJob() {
+        return fg_;
+    }
+
+    void setFgJob(job j) {
+        fg_ = j;
+    }
+
+    void removeFromFG() {
+        fg_ = job();
+    }
 };
 
 int ExeComp(char *lineSize);
 
 int BgCmd(char *lineSize, void *jobs, std::string prev_path);
 
-int ExeCmd(void *jobs, char *lineSize, char *cmdString, std::string &prev_path);
+int ExeCmd(void *jobs, char *lineSize, char *cmdString, bool bg, char *prev_path);
 
-void ExeExternal(char *args[MAX_ARG], char *cmdString);
+void ExeExternal(char *args[MAX_ARG], char *cmdString, bool bg);
 
 #endif

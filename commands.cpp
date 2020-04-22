@@ -1,14 +1,33 @@
 //		commands.c
 //********************************************
 #include "commands.h"
+#include "signals.h"
+
 
 using namespace std;
-
-int bsdChecksumFromFile(FILE *fp);
+extern smash smash1;
 
 bool areFilesEqual(fstream *, fstream *);
 
 int sizeOfFile(fstream *);
+
+//********************************************
+// function name: send_sig
+// Description: sends "signal" to "pid", and prints out the information if successful
+// Parameters: pid, signal to send
+// Returns: 0 - success,-1 - failure
+//**************************************************************************************
+int send_sig(pid_t pid, int signal) {
+    int kill_res = kill(pid, signal);
+    if (kill_res == 0) {
+        printf("smash > signal %s was sent to pid %d\n", strsignal(signal), pid);
+        return 0;
+    }
+    perror("smash error: >");
+    return -1;
+
+}
+
 
 //********************************************
 // function name: ExeCmd
@@ -16,10 +35,10 @@ int sizeOfFile(fstream *);
 // Parameters: pointer to jobs, command std::string
 // Returns: 0 - success,1 - failure
 //**************************************************************************************
-int ExeCmd(void *jobs, char *lineSize, char *cmdString, std::string &prev_path) {
+int ExeCmd(void *jobs, char *lineSize, char *cmdString, bool bg, char *prev_path) {
     char *cmd;
     char *args[MAX_ARG];
-    char pwd[MAX_LINE_SIZE];
+    char *pwd;
 
 
     const char *delimiters = " \t\n";
@@ -43,16 +62,22 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, std::string &prev_path) 
     if (!strcmp(cmd, "cd")) {
         //printf("entered cd");
         if (num_arg == 1) {
-            if (getcwd(pwd, sizeof(pwd)) == NULL)
+            /**  if (getcwd(pwd, sizeof(pwd)) == NULL)
+                  perror("smash error: >");**/
+            if (!(pwd = realpath(".", NULL))) {
                 perror("smash error: >");
+            }
 
             if (!strcmp(args[1], "-")) {
-                chdir(prev_path.c_str());
-                cout << prev_path;
-                prev_path = pwd;
+                // chdir(prev_path.c_str());
+                chdir(prev_path);
+                cout << prev_path << endl;
             } else if (chdir(args[1]) == -1) {
                 printf("smash error: > %s - path not found\n", args[1]);
             }
+
+            strcpy(prev_path, pwd);
+
         } else
             illegal_cmd = true;
 
@@ -61,9 +86,9 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, std::string &prev_path) 
         /*************************************************/
     else if (!strcmp(cmd, "pwd")) {
         if (num_arg == 0) {
-            if (getcwd(pwd, sizeof(pwd)) == NULL)
+            if (!(pwd = realpath(".", NULL))) {
                 perror("smash error: >");
-            else
+            } else
                 printf("%s\n", pwd);
         } else
             illegal_cmd = true;
@@ -72,13 +97,53 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, std::string &prev_path) 
         /*************************************************/
     else if (!strcmp(cmd, "history")) {
 
+        if (num_arg == 0) {
+            smash1.printHist();
+        } else
+            illegal_cmd = true;
+
     }
         /*************************************************/
     else if (!strcmp(cmd, "jobs")) {
 
+        if (num_arg == 0) {
+            smash1.printJobList();
+
+        } else
+            illegal_cmd = true;
+
     }
         /*************************************************/
     else if (!strcmp(cmd, "kill")) {
+        if (num_arg == 2) {
+            if (!has_only_digits(args[1]) || !has_only_digits(args[2])) {
+                cout << "smash error:> kill job - job does not exist" << endl;
+                // TODO add illegal command=true?
+            }
+            int JobId = atoi(args[2]);
+            if (!smash1.isInJList(JobId)) {    //job doesn't exist
+                cout << "smash error:> kill job - job does not exist" << endl;
+                // TODO add illegal command=true?
+            } else {
+                //job exist-
+                int signum = atoi(args[1]);
+                list<job>::iterator it = smash1.getJobFromId(JobId);
+
+                int Jpid = it->getPID();
+                int k = kill(Jpid, signum);
+                if (k == -1) {
+                    cout << "kill job - cannot send signal" << endl;
+                }
+                // else- signal sent
+                cout << "signal " << strdup(sys_siglist[signum]) << " was sent to pid " << Jpid << endl;
+
+                // check
+            }
+
+        } else {
+            illegal_cmd = true;
+
+        }
 
     }
         /*************************************************/
@@ -92,29 +157,83 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, std::string &prev_path) 
     }
         /*************************************************/
     else if (!strcmp(cmd, "fg")) {
+        //if arg[2]==NULL find last process that was paused
+        //print name of process
+        //move process with command number(arg[2]) to bg
 
+        list<job>::iterator iter;
+        list<job>::iterator command;
+        switch (num_arg) {
+
+            case 0:  // handle the last job suspended, move to fg
+                if (smash1.LastInBg() != -1) {  // TODO make sure such field exists
+                    // checking if there was a job suspended
+                    command = smash1.getJobFromId(smash1.LastInBg());
+                }
+                if (smash1.LastInBg() == -1) {  // TODO check such method exists
+                    // in case jobs list isn't empty but none was suspended
+                    illegal_cmd = true;
+                }
+                break;
+
+            case 1: // find the relevant job and move it to fg
+                if (!has_only_digits(args[1])) {
+                    cout << "smash error:> kill job - job does not exist" << endl;
+                    illegal_cmd = true;
+                    break;
+                }
+                command = smash1.getJobFromId(atoi(args[1]));
+                break;
+
+            default:
+                illegal_cmd = true;
+                break;
+        }
+        if (command == smash1.getListEnd())    //no such process
+            illegal_cmd = true;  // TODO redundant?
+        if (!illegal_cmd) //process found
+        {
+
+            if (send_sig(command->getPID(), SIGCONT) == 0) // if job was stopped release it
+            {
+                printf("%s\n", command->getJobName().c_str());
+                waitingPID = command->getPID();
+                smash1.setLastProcessOnFg(command->getID());
+                while (waitpid(command->getPID(), NULL, WUNTRACED) == -1);
+                smash1.eraseFromList(command->getID());
+            }
+            waitingPID = 0;
+        } else // no jobs / all are suspended
+        {   // TODO other err message if no jobs on the list?
+            printf("smash error: > job [%d] is already running in the background\n", command->getID());
+        }
     }
         /*************************************************/
     else if (!strcmp(cmd, "bg")) {
         //if arg[2]==NULL find last process that was paused
         //print name of process
         //move process with command number(arg[2]) to bg
-        bool have_stopped = false;
-        list<job>::iterator iter, command = Jobs.LastjobSuspended();
+
+        list<job>::iterator iter, command = smash1.LastjobSuspended();
         switch (num_arg) {
-
-            case 0:  // handle the last job suspended, move to bg
-                if (command._stopped) {  // TODO make sure such field exists
+            case 0:  // no args- find last process sent to bg
+                if (suspended_counter) {  // case there are jobs in the bg
                     // checking if there was a job suspended
-                    have_stopped = true;
+                    command = smash1.LastjobSuspended();
+                    //have_stopped = true;
                 }
-                if (!have_stopped && !Jobs.size())  // TODO check such method exists
+                if (!suspended_counter && job_counter) { // TODO check what to do with it
                     // in case jobs list isn't empty but none was suspended
-
+                    illegal_cmd = true;
                     break;
-
-            case 1: // find the relevant job and move it
-                command = jobs.find(atoi(args[1]));
+                }
+            case 1: // find the relevant job
+                if (!has_only_digits(args[1])) {
+                    cout << "smash error:> kill job - job does not exist" << endl;
+                    illegal_cmd = true;
+                    break;
+                }
+                command = smash1.getJobFromId(atoi(args[1]));
                 break;
 
             default:
@@ -122,25 +241,17 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, std::string &prev_path) 
                 break;
         }
         if (!illegal_cmd) {
-            if (Jobs.LastjobSuspended() != NULL) {  // some job suspended
-
-                if (send_sig(command._PID, SIGCONT) == 0) {
-                    command->second._stopped = false;   // TODO fit to our functions and data set
-                    command->second._bgTime = time(0);      // TODO fit to our functions and data set
-                    printf("%s\n", command->second._name.c_str()); // TODO fit to our functions and data set
-                }
-
-
-            } else // job was already running
-            {
-                printf("smash error: > job [%d] is already running in the background\n", command->first);
+            if (send_sig(command->getPID(), SIGCONT) == 0) {
+                command->jpbUnsuspended();
+                printf("%s\n", command->getJobName().c_str()); // TODO fit to our functions and data set
             }
 
-
+        } else // job was already running in bg
+        {
+            printf("smash error: > job [%d] is already running in the background\n", command->getID());
         }
-
-
     }
+
         /*************************************************/
     else if (!strcmp(cmd, "quit")) {
 
@@ -160,7 +271,6 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, std::string &prev_path) 
             if (src.rdbuf() == NULL) {
                 perror("smash error:> ");
                 return (-1);
-                break;
             }
             ofstream dst(args[2], ios::binary);
             dst << src.rdbuf();
@@ -205,7 +315,7 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, std::string &prev_path) 
 
     else // external command
     {
-        ExeExternal(args, cmdString);
+        ExeExternal(args, cmdString, false);
         return 0;
     }
     if (illegal_cmd == true) {
@@ -221,34 +331,43 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, std::string &prev_path) 
 // Parameters: external command arguments, external command string
 // Returns: void
 //**************************************************************************************
-void ExeExternal(char *args[MAX_ARG], char *cmdString) {
+void ExeExternal(char *args[MAX_ARG], char *cmdString, bool bg) {
     int pID;
+    // in case of error, the err msg will be as follow
+    string err_string("smash error:> \\");
+    err_string += args[0];
+    err_string += "\" - ";
     switch (pID = fork()) {
         case -1:
             // Add your code here (error)
-
-            /*
-            your code
-            */
+            // new process wasn't launched properly
+            perror("ERROR- fork");
+            exit(1);
             break;
         case 0 :
             // Child Process
             setpgrp();
-
             // Add your code here (execute an external command)
-
-            /*
-            your code
-            */
+            if (execvp(args[0], args) == -1) {
+                perror("exec ERROR");
+                exit(1);
+            } else {
+                exit(0);
+            }
             break;
-
-
         default:
-            // Add your code here
-
-            /*
-            your code
-            */
+            //  Father code
+            string name = args[0];
+            //  if it's not on background - we will wait for it
+            if (!bg) {
+                job BG = job(pID, name, false);
+                smash1.addJob(BG);
+                //waitpid
+            } else {
+                job FG = job(pID, name, false);
+                smash1.setFgJob(FG);
+                ///waitpid
+            }
             break;
 
     }
@@ -283,33 +402,25 @@ int ExeComp(char *lineSize) {
 int BgCmd(char *lineSize, void *jobs, std::string prev_path) {
 
     char *Command;
-    char *delimiters = " \t\n";
+    const char *delimiters = " \t\n";
     char *args[MAX_ARG];
     if (lineSize[strlen(lineSize) - 2] == '&') {
         lineSize[strlen(lineSize) - 2] = '\0';
         // Add your code here (execute a in the background)
+        Command = std::strtok(lineSize, delimiters);
+        if (Command == NULL)
+            return 0;
+        args[0] = Command;
+        for (int i = 1; i < MAX_ARG; i++) {
+            args[i] = std::strtok(NULL, delimiters);
 
-        /*
-        your code
-        */
+        }
+        ExeExternal(args, Command, true);
+        return 0;
 
     }
     return -1;
 }
-
-// checksum function
-int bsdChecksumFromFile(FILE *fp) /* The file handle for input data */
-{
-    int checksum = 0;             /* The checksum mod 2^16. */
-
-    for (int ch = getc(fp); ch != EOF; ch = getc(fp)) {
-        checksum = (checksum >> 1) + ((checksum & 1) << 15);
-        checksum += ch;
-        checksum &= 0xffff;       /* Keep it within bounds. */
-    }
-    return checksum;
-}
-
 
 bool areFilesEqual(fstream *a, fstream *b) {
     int fileSize1 = sizeOfFile(a);
