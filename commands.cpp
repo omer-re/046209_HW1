@@ -34,10 +34,10 @@ int send_sig(pid_t pid, int signal) {
 // Parameters: pointer to jobs, command std::string
 // Returns: 0 - success,1 - failure
 //**************************************************************************************
-int ExeCmd(void *jobs, char *lineSize, char *cmdString, bool bg, string &prev_path, smash &smash1) {
+int ExeCmd(void *jobs, char *lineSize, char *cmdString, bool bg, char *prev_path) {
     char *cmd;
     char *args[MAX_ARG];
-    char pwd[MAX_LINE_SIZE];
+    char *pwd;
 
 
     const char *delimiters = " \t\n";
@@ -61,16 +61,22 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, bool bg, string &prev_pa
     if (!strcmp(cmd, "cd")) {
         //printf("entered cd");
         if (num_arg == 1) {
-            if (getcwd(pwd, sizeof(pwd)) == NULL)
+            /**  if (getcwd(pwd, sizeof(pwd)) == NULL)
+                  perror("smash error: >");**/
+            if (!(pwd = realpath(".", NULL))) {
                 perror("smash error: >");
+            }
 
             if (!strcmp(args[1], "-")) {
-                chdir(prev_path.c_str());
+                // chdir(prev_path.c_str());
+                chdir(prev_path);
                 cout << prev_path << endl;
-                prev_path = pwd;
             } else if (chdir(args[1]) == -1) {
                 printf("smash error: > %s - path not found\n", args[1]);
             }
+
+            strcpy(prev_path, pwd);
+
         } else
             illegal_cmd = true;
 
@@ -79,9 +85,9 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, bool bg, string &prev_pa
         /*************************************************/
     else if (!strcmp(cmd, "pwd")) {
         if (num_arg == 0) {
-            if (getcwd(pwd, sizeof(pwd)) == NULL)
+            if (!(pwd = realpath(".", NULL))) {
                 perror("smash error: >");
-            else
+            } else
                 printf("%s\n", pwd);
         } else
             illegal_cmd = true;
@@ -380,7 +386,7 @@ int ExeComp(char *lineSize) {
 int BgCmd(char *lineSize, void *jobs, std::string prev_path) {
 
     char *Command;
-    char *delimiters = " \t\n";
+    const char *delimiters = " \t\n";
     char *args[MAX_ARG];
     if (lineSize[strlen(lineSize) - 2] == '&') {
         lineSize[strlen(lineSize) - 2] = '\0';

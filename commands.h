@@ -295,7 +295,7 @@ int ExeComp(char *lineSize);
 
 int BgCmd(char *lineSize, void *jobs, std::string prev_path);
 
-int ExeCmd(void *jobs, char *lineSize, char *cmdString, std::string &prev_path);
+int ExeCmd(void *jobs, char *lineSize, char *cmdString, bool bg, char *prev_path);
 
 void ExeExternal(char *args[MAX_ARG], char *cmdString, bool bg);
 

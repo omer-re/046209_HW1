@@ -42,7 +42,7 @@ int waitingPID;
 //**************************************************************************************
 int main(int argc, char *argv[]) {
     char cmdString[MAX_LINE_SIZE];
-    string prev_path;
+    char *prev_path;
 
     //signal declaretions
     //NOTE: the signal handlers and the function/s that sets the handler should be found in siganls.c
@@ -72,7 +72,9 @@ int main(int argc, char *argv[]) {
     waitingPID = 0;
     suspended_counter = 0;
     job_counter = 0;
-    //getcwd(prev_path, sizeof(MAX_LINE_SIZE*sizeof(char)));
+    if (!(prev_path = realpath(".", NULL))) {
+        perror("pwd");
+    }
 
     while (1) {
         printf("smash > ");
@@ -84,7 +86,7 @@ int main(int argc, char *argv[]) {
         // background command
         if (!BgCmd(lineSize, jobs, prev_path)) continue;
         // built in commands
-        ExeCmd(jobs, lineSize, cmdString, false, prev_path, smash1);
+        ExeCmd(jobs, lineSize, cmdString, false, prev_path);
 
         smash1.addToHistory(cmdString); //add command to history list
 

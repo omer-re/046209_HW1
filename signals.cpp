@@ -13,7 +13,9 @@
 // Parameters: signal
 // Returns: void
 //**************************************************************************************
-void TerminateHandler(int signal) {}
+void TerminateHandler(int signal) {
+    cout << "TerminateHandler" << endl;
+}
 
 
 //********************************************
@@ -23,4 +25,6 @@ void TerminateHandler(int signal) {}
 // Returns: void
 //**************************************************************************************
 
-void StopHandler(int signal) {} // handle the CTRL-Z Signal
+void StopHandler(int signal) { // handle the CTRL-Z Signal
+    cout << "StopHandler" << endl;
+}
