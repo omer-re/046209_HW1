@@ -27,10 +27,6 @@ extern int waitingPID;
 extern int suspended_counter;
 extern int job_counter;
 
-bool has_only_digits(const string s) {
-    return s.find_first_not_of("0123456789") == string::npos;
-}
-
 class job {
 private:
     int id;
@@ -65,7 +61,7 @@ public:
     }
 
     int getPID() {
-        return id;
+        return pid;
     }
 
     bool isSus() {
@@ -226,16 +222,15 @@ public:
         return last;
     }
 
-    void jobStatus(int jpid) {
+    void jobStatus(pid_t jpid) {
         int status;
         int result = waitpid(jpid, &status, WNOHANG);
         if (result == jpid) {
             eraseJobFromList(jpid);
-
         }
     }
 
-    void updateJobs() {
+    void updateJobs() { // for jobs cmd- check if job finished- and erase from list
         for (list<job>::iterator it = jobs.begin(); it != jobs.end(); ++it) {
             jobStatus(it->getPID());
 
@@ -292,6 +287,41 @@ public:
 
     void removeFromFG() {
         fg_ = job();
+    }
+
+
+    void quitKill()//for quit kill cmd
+    {
+
+        for (list<job>::iterator it = jobs.begin(); it != jobs.end(); ++it) {
+            pid_t jpid = it->getPID();
+            int k = kill(jpid, SIGTERM);
+            if (k == -1) {
+                perror("smash error: >");
+                return;
+            }
+            string jname = it->getJobName();
+            int jid = it->getID();
+            cout << "[" << jid << "] " << jname << " - Sending SIGTERM...";
+
+            sleep(5);
+
+            if (!kill(jpid, 0)) {
+                cout << "Done." << endl;  //
+                continue;
+            }
+            //process didnt die after 5 sec
+            k = kill(jpid, SIGKILL);
+            if (k == -1) {
+                perror("smash error: >");
+                return;
+            }
+            cout << "(5 sec passed) Sending SIGKILL�. Done" << endl;
+
+            it = jobs.erase(it);
+
+        }
+
     }
 };
 
