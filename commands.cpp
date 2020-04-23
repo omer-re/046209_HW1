@@ -25,9 +25,14 @@ int send_sig(pid_t pid, int signal) {
     }
     perror("smash error: >");
     return -1;
-
 }
 
+bool has_only_digits(const char *s) {
+    std::string Str = std::string(s);
+    if (Str.find_first_not_of("0123456789") == string::npos) {
+        return true;
+    } else return false;
+}
 
 //********************************************
 // function name: ExeCmd
@@ -62,8 +67,6 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, bool bg, char *prev_path
     if (!strcmp(cmd, "cd")) {
         //printf("entered cd");
         if (num_arg == 1) {
-            /**  if (getcwd(pwd, sizeof(pwd)) == NULL)
-                  perror("smash error: >");**/
             if (!(pwd = realpath(".", NULL))) {
                 perror("smash error: >");
             }
@@ -80,6 +83,7 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, bool bg, char *prev_path
 
         } else
             illegal_cmd = true;
+        free(pwd);
 
     }
 
@@ -92,6 +96,8 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, bool bg, char *prev_path
                 printf("%s\n", pwd);
         } else
             illegal_cmd = true;
+        free(pwd);
+
     }
 
         /*************************************************/
@@ -105,7 +111,7 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, bool bg, char *prev_path
     }
         /*************************************************/
     else if (!strcmp(cmd, "jobs")) {
-
+        smash1.updateJobs();
         if (num_arg == 0) {
             smash1.printJobList();
 
@@ -116,7 +122,7 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, bool bg, char *prev_path
         /*************************************************/
     else if (!strcmp(cmd, "kill")) {
         if (num_arg == 2) {
-            if (!has_only_digits(args[1]) || !has_only_digits(args[2])) {
+            if ((!has_only_digits(args[1])) || (!has_only_digits(args[2]))) {
                 cout << "smash error:> kill job - job does not exist" << endl;
                 // TODO add illegal command=true?
             }
@@ -254,6 +260,21 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, bool bg, char *prev_path
 
         /*************************************************/
     else if (!strcmp(cmd, "quit")) {
+        if (num_arg == 0)// quit
+        {
+            exit(0);
+        } else if (num_arg == 1) {
+            if (strcmp(args[1], "kill") == 0)//quit kill
+            {
+                smash1.quitKill();
+                exit(0);
+            } else {
+                illegal_cmd = true;
+
+            }
+        } else {  //num args!= 1,0
+            illegal_cmd = true;
+        }
 
     }
         /*************************************************/
@@ -359,14 +380,14 @@ void ExeExternal(char *args[MAX_ARG], char *cmdString, bool bg) {
             //  Father code
             string name = args[0];
             //  if it's not on background - we will wait for it
-            if (!bg) {
+            if (bg) {
                 job BG = job(pID, name, false);
                 smash1.addJob(BG);
-                //waitpid
+                waitpid(pID, NULL, WNOHANG);
             } else {
                 job FG = job(pID, name, false);
                 smash1.setFgJob(FG);
-                ///waitpid
+                waitpid(pID, NULL, 0);
             }
             break;
 
