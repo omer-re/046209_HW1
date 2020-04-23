@@ -111,7 +111,7 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, bool bg, char *prev_path
     }
         /*************************************************/
     else if (!strcmp(cmd, "jobs")) {
-
+        smash1.updateJobs();
         if (num_arg == 0) {
             smash1.printJobList();
 
@@ -380,7 +380,7 @@ void ExeExternal(char *args[MAX_ARG], char *cmdString, bool bg) {
             //  Father code
             string name = args[0];
             //  if it's not on background - we will wait for it
-            if (bg) {  //TODO check with Oz if it should be (b) or (!bg)?
+            if (bg) {
                 job BG = job(pID, name, false);
                 smash1.addJob(BG);
                 waitpid(pID, NULL, WNOHANG);
