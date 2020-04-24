@@ -193,6 +193,19 @@ public:
 
     }
 
+    list<job>::iterator getJobFromPID(int _pid) { //check if the job ID exist in the list and return the job
+        for (list<job>::iterator it = jobs.begin(); it != jobs.end(); ++it) {
+            int itPID = it->getPID();
+            if (itPID == _pid) {
+                return it;
+            }
+
+        }
+        return jobs.end();  //job not in the list
+
+    }
+
+
     bool isInJList(int idj) {
         list<job>::iterator it = getJobFromId(idj);
 
@@ -327,9 +340,9 @@ public:
 
 int ExeComp(char *lineSize);
 
-int BgCmd(char *lineSize, void *jobs, std::string prev_path);
+int BgCmd(char *lineSize, char *prev_path);
 
-int ExeCmd(void *jobs, char *lineSize, char *cmdString, bool bg, char *prev_path);
+int ExeCmd(char *lineSize, char *cmdString, bool bg, char *prev_path);
 
 void ExeExternal(char *args[MAX_ARG], char *cmdString, bool bg);
 

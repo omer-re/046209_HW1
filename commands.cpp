@@ -40,7 +40,7 @@ bool has_only_digits(const char *s) {
 // Parameters: pointer to jobs, command std::string
 // Returns: 0 - success,1 - failure
 //**************************************************************************************
-int ExeCmd(void *jobs, char *lineSize, char *cmdString, bool bg, char *prev_path) {
+int ExeCmd(char *lineSize, char *cmdString, bool bg, char *prev_path) {
     char *cmd;
     char *args[MAX_ARG];
     char *pwd;
@@ -200,7 +200,8 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, bool bg, char *prev_path
         if (!illegal_cmd) //process found
         {
 
-            if (send_sig(command->getPID(), SIGCONT) == 0) // if job was stopped release it
+            //if (send_sig(command->getPID(), SIGCONT) == 0) // if job was stopped release it
+            if (kill(command->getPID(), SIGCONT) == 0) // if job was stopped release it
             {
                 printf("%s\n", command->getJobName().c_str());
                 waitingPID = command->getPID();
@@ -247,7 +248,8 @@ int ExeCmd(void *jobs, char *lineSize, char *cmdString, bool bg, char *prev_path
                 break;
         }
         if (!illegal_cmd) {
-            if (send_sig(command->getPID(), SIGCONT) == 0) {
+            if (kill(command->getPID(), SIGCONT) == 0) {
+                //if (send_sig(command->getPID(), SIGCONT) == 0) {
                 command->jpbUnsuspended();
                 printf("%s\n", command->getJobName().c_str()); // TODO fit to our functions and data set
             }
@@ -420,7 +422,7 @@ int ExeComp(char *lineSize) {
 // Parameters: command string, pointer to jobs
 // Returns: 0- BG command -1- if not
 //**************************************************************************************
-int BgCmd(char *lineSize, void *jobs, std::string prev_path) {
+int BgCmd(char *lineSize, char *prev_path) {
 
     char *Command;
     const char *delimiters = " \t\n";
