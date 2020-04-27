@@ -282,6 +282,7 @@ int ExeCmd(char *lineSize, char *cmdString, bool bg, char *prev_path) {
 
 
         }
+    }
 
         /*************************************************/
     else if (!strcmp(cmd, "quit")) {
