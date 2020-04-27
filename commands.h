@@ -31,11 +31,12 @@ class job {
 private:
     int id;
     pid_t pid;
-    time_t Time;
-    time_t susTime; //suspended time
 
     string jobName;
     bool suspended; //
+    time_t Time;
+    time_t susTime; //suspended time
+
 
 
 public:
@@ -47,13 +48,20 @@ public:
         Time = time(NULL);// get current time--- check?
     }
 
+    job(int jpid, int jid, string name, time_t jtime) : id(jid), pid(jpid), jobName(name), Time(jtime) {
+        suspended = false;
+    }
+
 
     job() {
-        id = -1;
+        pid = -1;
         jobName = "-";
         suspended = false;
     }
 
+    ~job() {
+// TODO should we add a d'tor?
+    }
 
     //gets:
     int getID() {
@@ -87,7 +95,7 @@ public:
         suspended_counter++;
     }
 
-    void jpbUnsuspended() {
+    void jobUnsuspended() {
         suspended = false;
         suspended_counter--;
     }
@@ -193,7 +201,7 @@ public:
 
     }
 
-    list<job>::iterator getJobFromPID(int _pid) { //check if the job ID exist in the list and return the job
+    list<job>::iterator getJobFromPID(int _pid) { //check if the job PID exist in the list and return the job
         for (list<job>::iterator it = jobs.begin(); it != jobs.end(); ++it) {
             int itPID = it->getPID();
             if (itPID == _pid) {
@@ -217,7 +225,6 @@ public:
 
 
     list<job>::iterator LastjobSuspended()//
-
     {
         int maxtime = -1;
         list<job>::iterator last = jobs.end();
@@ -238,6 +245,11 @@ public:
     void jobStatus(pid_t jpid) {
         int status;
         int result = waitpid(jpid, &status, WNOHANG);
+        if (result == -1) {
+            perror("error:");
+            exit(1);
+        }
+
         if (result == jpid) {
             eraseJobFromList(jpid);
         }
@@ -267,7 +279,7 @@ public:
     }
 
 
-    int LastInBg() //TODO check that this is how "job is in the bg" is defined
+    int LastInBgOLD() //TODO check that this is how "job is in the bg" is defined
     {
         int last = -1;
         for (list<job>::iterator it = jobs.begin(); it != jobs.end(); ++it) {
@@ -277,6 +289,23 @@ public:
                 last = it->getID();
             }
         }
+        return last;
+    }
+
+    list<job>::iterator LastInBg() {
+        list<job>::iterator last = jobs.begin();
+        time_t lastbgTime = last->getTime();
+
+        for (list<job>::iterator it = jobs.begin(); it != jobs.end(); ++it) {
+            time_t k = it->getTime();
+            if (k > lastbgTime) {
+                last = it;
+                lastbgTime = k;
+
+            }
+
+        }
+        cout << "last is   " << last->getJobName() << endl;
         return last;
     }
 
@@ -308,34 +337,46 @@ public:
 
         for (list<job>::iterator it = jobs.begin(); it != jobs.end(); ++it) {
             pid_t jpid = it->getPID();
+            int status;
+
             int k = kill(jpid, SIGTERM);
             if (k == -1) {
+                printf("free");
                 perror("smash error: >");
                 return;
             }
             string jname = it->getJobName();
             int jid = it->getID();
-            cout << "[" << jid << "] " << jname << " - Sending SIGTERM...";
-
             sleep(5);
+            if (waitpid(jpid, &status, WNOHANG) == jpid) {
 
-            if (!kill(jpid, 0)) {
-                cout << "Done." << endl;  //
+                cout << "[" << jid << "] " << jname << " - Sending SIGTERM...Done." << endl;  //
+
                 continue;
             }
-            //process didnt die after 5 sec
-            k = kill(jpid, SIGKILL);
-            if (k == -1) {
-                perror("smash error: >");
-                return;
+                //process didnt die after 5 sec
+            else {
+                int kk = kill(jpid, SIGKILL);
+                if (kk == -1) {
+                    perror("smash error: >");
+                    return;
+                }
+                cout << "[" << jid << "] " << jname << " - Sending SIGTERM...(5 sec passed) Sending SIGKILL...Done."
+                     << endl;
             }
-            cout << "(5 sec passed) Sending SIGKILL�. Done" << endl;
-
-            it = jobs.erase(it);
-
         }
 
     }
+
+    bool isJobListEmpty() {
+        return jobs.empty();
+    }
+
+
+    list<job> &GetJobs() {
+        return jobs;
+    }
+
 };
 
 int ExeComp(char *lineSize);

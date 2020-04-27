@@ -44,19 +44,19 @@ int main(int argc, char *argv[]) {
     char cmdString[MAX_LINE_SIZE];
     char *prev_path;
 
-    get_smash1_to_signals(smash1);
+    // get_smash1_to_signals(smash1);
     //signal declaretions
     //NOTE: the signal handlers and the function/s that sets the handler should be found in siganls.c
     /* add your code here */
     struct sigaction stop, term;
 
-    stop.sa_handler = &StopHandler;
-    sigfillset(&stop.sa_mask);
-    stop.sa_flags = 0;
-
     term.sa_handler = &TerminateHandler;
     sigfillset(&term.sa_mask);
     term.sa_flags = 0;
+
+    stop.sa_handler = &StopHandler;
+    sigfillset(&stop.sa_mask);
+    stop.sa_flags = 0;
     /************************************/
     //NOTE: the signal handlers and the function/s that sets the handler should be found in siganls.c
     //set your signal handlers here
@@ -79,6 +79,7 @@ int main(int argc, char *argv[]) {
 
     while (1) {
         printf("smash > ");
+        lineSize[0] = 0;
         fgets(lineSize, MAX_LINE_SIZE, stdin);
         strcpy(cmdString, lineSize);
         cmdString[strlen(lineSize) - 1] = '\0';
