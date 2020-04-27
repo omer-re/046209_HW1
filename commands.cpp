@@ -66,7 +66,9 @@ int ExeCmd(char *lineSize, char *cmdString, bool bg, char *prev_path) {
 /*************************************************/
     if (!strcmp(cmd, "cd")) {
         //printf("entered cd");
-        if (num_arg == 1) {
+        if (num_arg == 0) {
+            printf("smash error: > \"cd\"\n");
+        } else if (num_arg == 1) {
             if (!(pwd = realpath(".", NULL))) {
                 perror("smash error: >");
             }
@@ -80,11 +82,11 @@ int ExeCmd(char *lineSize, char *cmdString, bool bg, char *prev_path) {
             }
 
             strcpy(prev_path, pwd);
+            free(pwd);
 
-        } else
+        } else {
             illegal_cmd = true;
-        free(pwd);
-
+        }
     }
 
         /*************************************************/
@@ -92,11 +94,13 @@ int ExeCmd(char *lineSize, char *cmdString, bool bg, char *prev_path) {
         if (num_arg == 0) {
             if (!(pwd = realpath(".", NULL))) {
                 perror("smash error: >");
-            } else
+            } else {
                 printf("%s\n", pwd);
+                free(pwd);
+            }
         } else
             illegal_cmd = true;
-        free(pwd);
+
 
     }
 
@@ -122,30 +126,45 @@ int ExeCmd(char *lineSize, char *cmdString, bool bg, char *prev_path) {
         /*************************************************/
     else if (!strcmp(cmd, "kill")) {
         if (num_arg == 2) {
-            if ((!has_only_digits(args[1])) || (!has_only_digits(args[2]))) {
-                cout << "smash error:> kill job - job does not exist" << endl;
-                // TODO add illegal command=true?
-            }
-            int JobId = atoi(args[2]);
-            if (!smash1.isInJList(JobId)) {    //job doesn't exist
+            if ((!has_only_digits(args[1] + 1)) || (!has_only_digits(args[2]))) {
                 cout << "smash error:> kill job - job does not exist" << endl;
                 // TODO add illegal command=true?
             } else {
-                //job exist-
-                int signum = atoi(args[1]);
-                list<job>::iterator it = smash1.getJobFromId(JobId);
-
-                int Jpid = it->getPID();
-                int k = kill(Jpid, signum);
-                if (k == -1) {
-                    cout << "kill job - cannot send signal" << endl;
+                if (args[1][0] != '-') {
+                    illegal_cmd = true;
                 }
-                // else- signal sent
-                cout << "signal " << strdup(sys_siglist[signum]) << " was sent to pid " << Jpid << endl;
+                int JobId = atoi(args[2]);
+                if (!smash1.isInJList(JobId)) {    //job doesn't exist
+                    cout << "smash error:> kill job - job does not exist" << endl;
+                    // TODO add illegal command=true?
+                } else {
+                    //job exist-
+                    int signum = atoi(args[1] + 1);
+                    list<job>::iterator it = smash1.getJobFromId(JobId);
 
-                // check
+                    int Jpid = it->getPID();
+                    int k = kill(Jpid, signum);
+                    if (k == -1) {
+                        cout << "kill job - cannot send signal" << endl;
+                    }
+                    // else- signal sent
+                    cout << "signal " << strdup(sys_siglist[signum]) << " was sent to pid " << Jpid << endl;
+                    if (signum == SIGKILL || signum == SIGINT || signum == SIGTERM) {
+                        smash1.eraseJobFromList(Jpid);
+                    }
+                    if (signum == SIGCONT) {
+                        if (it->isSus() == true) {
+                            it->jobUnsuspended();
+                        }
+                    }
+                    if (signum == SIGTSTP) {
+                        if (it->isSus() == false) {
+                            it->jobSuspended();
+
+                        }
+                    }
+                }
             }
-
         } else {
             illegal_cmd = true;
 
@@ -169,50 +188,53 @@ int ExeCmd(char *lineSize, char *cmdString, bool bg, char *prev_path) {
 
         list<job>::iterator iter;
         list<job>::iterator command;
-        switch (num_arg) {
+        if ((smash1.isJobListEmpty()) || (num_arg > 1))// if job list is empty
+        {
+            illegal_cmd = true;
+        } else {
+            switch (num_arg) {
 
-            case 0:  // handle the last job suspended, move to fg
-                if (smash1.LastInBg() != -1) {  // TODO make sure such field exists
-                    // checking if there was a job suspended
-                    command = smash1.getJobFromId(smash1.LastInBg());
-                }
-                if (smash1.LastInBg() == -1) {  // TODO check such method exists
-                    // in case jobs list isn't empty but none was suspended
-                    illegal_cmd = true;
-                }
-                break;
+                case 0:  // handle the last job suspended, move to fg
+                    command = smash1.LastInBg();
+                    break;
 
-            case 1: // find the relevant job and move it to fg
-                if (!has_only_digits(args[1])) {
-                    cout << "smash error:> kill job - job does not exist" << endl;
+                case 1: // find the relevant job and move it to fg
+                    if (!has_only_digits(args[1])) {
+                        illegal_cmd = true;
+                    }
+                    command = smash1.getJobFromId(atoi(args[1]));
+                    break;
+
+                default:
                     illegal_cmd = true;
                     break;
-                }
-                command = smash1.getJobFromId(atoi(args[1]));
-                break;
-
-            default:
-                illegal_cmd = true;
-                break;
-        }
-        if (command == smash1.getListEnd())    //no such process
-            illegal_cmd = true;  // TODO redundant?
-        if (!illegal_cmd) //process found
-        {
-
-            //if (send_sig(command->getPID(), SIGCONT) == 0) // if job was stopped release it
-            if (kill(command->getPID(), SIGCONT) == 0) // if job was stopped release it
-            {
-                printf("%s\n", command->getJobName().c_str());
-                waitingPID = command->getPID();
-                smash1.setLastProcessOnFg(command->getID());
-                while (waitpid(command->getPID(), NULL, WUNTRACED) == -1);
-                smash1.eraseFromList(command->getID());
             }
-            waitingPID = 0;
-        } else // no jobs / all are suspended
-        {   // TODO other err message if no jobs on the list?
-            printf("smash error: > job [%d] is already running in the background\n", command->getID());
+            if (command == smash1.getListEnd())    //no such process
+                illegal_cmd = true;  // TODO redundant?
+            if (!illegal_cmd) //process found
+            {
+
+                if (kill(command->getPID(), SIGCONT) == 0) // if job was stopped release it
+                {
+                    string name_ = command->getJobName();
+                    int id_ = command->getID();
+                    pid_t pid_ = command->getPID();
+                    time_t time_ = command->getTime();
+
+                    job fg_ = job(pid_, id_, name_, time_);
+
+                    smash1.setFgJob(fg_);
+                    printf("%s\n", command->getJobName().c_str());
+                    waitingPID = command->getPID();
+                    smash1.setLastProcessOnFg(command->getID());
+                    while (waitpid(command->getPID(), NULL, WUNTRACED) == -1);
+                    smash1.eraseFromList(command->getID());
+                }
+                waitingPID = 0;
+            } else // no jobs / all are suspended
+            {   // TODO other err message if no jobs on the list?
+                printf("smash error: > job [%d] is already running in the background\n", command->getID());
+            }
         }
     }
         /*************************************************/
@@ -220,45 +242,46 @@ int ExeCmd(char *lineSize, char *cmdString, bool bg, char *prev_path) {
         //if arg[2]==NULL find last process that was paused
         //print name of process
         //move process with command number(arg[2]) to bg
+        if ((smash1.isJobListEmpty()) || (num_arg > 1)) {
+            illegal_cmd = true;
+        } else {
+            list<job>::iterator iter;
+            list<job>::iterator command = smash1.LastjobSuspended();
+            switch (num_arg) {
+                case 0:  // no args- find last process sent to bg
+                    if (suspended_counter) {  // case there are jobs in the bg
+                        // checking if there was a job suspended
+                        command = smash1.LastjobSuspended();
+                        //have_stopped = true;
+                    }
+                    if (!suspended_counter) { // if no job was suspended
+                        return -1;
+                        illegal_cmd = true;
+                    }
+                case 1: // find the relevant job
+                    if (!has_only_digits(args[1])) {
+                        command = smash1.getJobFromId(atoi(args[1]));
+                        if (command == smash1.getListEnd()) {
+                            illegal_cmd = true;
+                        } else if (command->isSus()) {
+                            cout << command->getJobName() << endl;
+                        }
+                    }
+                    break;
 
-        list<job>::iterator iter, command = smash1.LastjobSuspended();
-        switch (num_arg) {
-            case 0:  // no args- find last process sent to bg
-                if (suspended_counter) {  // case there are jobs in the bg
-                    // checking if there was a job suspended
-                    command = smash1.LastjobSuspended();
-                    //have_stopped = true;
-                }
-                if (!suspended_counter && job_counter) { // TODO check what to do with it
-                    // in case jobs list isn't empty but none was suspended
+                default:
                     illegal_cmd = true;
                     break;
+            }
+            if (!illegal_cmd) {
+                if (send_sig(command->getPID(), SIGCONT) == 0) {
+                    command->jobUnsuspended();
+                    //printf("%s\n", command->getJobName().c_str()); // TODO fit to our functions and data set
                 }
-            case 1: // find the relevant job
-                if (!has_only_digits(args[1])) {
-                    cout << "smash error:> kill job - job does not exist" << endl;
-                    illegal_cmd = true;
-                    break;
-                }
-                command = smash1.getJobFromId(atoi(args[1]));
-                break;
-
-            default:
-                illegal_cmd = true;
-                break;
-        }
-        if (!illegal_cmd) {
-            if (kill(command->getPID(), SIGCONT) == 0) {
-                //if (send_sig(command->getPID(), SIGCONT) == 0) {
-                command->jpbUnsuspended();
-                printf("%s\n", command->getJobName().c_str()); // TODO fit to our functions and data set
             }
 
-        } else // job was already running in bg
-        {
-            printf("smash error: > job [%d] is already running in the background\n", command->getID());
+
         }
-    }
 
         /*************************************************/
     else if (!strcmp(cmd, "quit")) {
@@ -291,7 +314,8 @@ int ExeCmd(char *lineSize, char *cmdString, bool bg, char *prev_path) {
             return (-1);
         } else {     //check for success
             ifstream src(args[1], ios::binary);
-            if (src.rdbuf() == NULL) {
+            //if (src.rdbuf() == NULL) {
+            if (!src.is_open()) {
                 perror("smash error:> ");
                 return (-1);
             }
