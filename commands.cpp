@@ -407,16 +407,24 @@ void ExeExternal(char *args[MAX_ARG], char *cmdString, bool bg) {
             //  Father code
             string name = args[0];
             //  if it's not on background - we will wait for it
-            if (bg) {
+            if (!bg) {
+                int status;
+                waitingPID = pID;
+                while (waitpid(pID, &status, WUNTRACED) == -1);
+                waitingPID = 0;
+                if (WIFSTOPPED(status)) {
+                    job FG = job(pID, name, false);
+                    smash1.setFgJob(FG);
+                    waitpid(pID, NULL, 0);
+                }
+            }
+                // job is bg
+            else {
                 job BG = job(pID, name, false);
                 smash1.addJob(BG);
                 waitpid(pID, NULL, WNOHANG);
-            } else {
-                job FG = job(pID, name, false);
-                smash1.setFgJob(FG);
-                waitpid(pID, NULL, 0);
+
             }
-            break;
 
     }
 }
