@@ -17,13 +17,14 @@ extern smash smash1;
 // Parameters: signal
 // Returns: void
 //**************************************************************************************
-void TerminateHandler(int signal) {
-    pid_t currPid = smash1.fgJob().getPID();
+/**void TerminateHandler(int signal) {
+    pid_t currPid = (-1)*smash1.fgJob().getPID();
     cout << "\nWaitingPID is: " << waitingPID << endl;
     cout << "currPID is: " << currPid << endl;
     if (currPid == -1) //nothing in fg
         return;
-    int k = kill(currPid, SIGKILL);
+
+    int k = kill(currPid, SIGINT);
     cout << "k =" << k << endl;
 
     int status;
@@ -80,9 +81,9 @@ void StopHandler(int signal) { // handle the CTRL-Z Signal
         smash1.removeFromFG(); // remove job from fg
     }
 
-}
+}**/
 
-/**
+
 //********************************************
 // function name: TerminateHandler
 // Description: CTRL-C signal handler
@@ -90,16 +91,20 @@ void StopHandler(int signal) { // handle the CTRL-Z Signal
 // Returns: void
 //**************************************************************************************
 void TerminateHandler(int signal) {
-    cout << "TerminateHandler" <<  "  waitingpid=  "<< waitingPID<< "  "<< endl;
-    cout <<  endl;
-    if (waitingPID){  //  means there is a command running in the foreground
-        if(kill(waitingPID, SIGINT) == -1)
-            cout << "Kill failed"<<endl;
-            return;
-        waitingPID = 0;
+    cout << "TerminateHandler" << "  waitingpid=  " << waitingPID << "  " << endl;
+    pid_t currPid = (-1) * smash1.fgJob().getPID();
+    //cout << "TerminateHandler" <<  "  currpid=  "<< currPid<< "  "<< endl;
+    if (currPid == -1) //nothing in fg
+        return;
+    int res_kill = kill((-1) * waitingPID, SIGINT);
+    if (res_kill == -1) {  //  means there is a command running in the foreground
+        cout << " cannot send signal" << endl;
+        return;
+    } else {
+        cout << "signal SIGINT was sent to pid " << currPid << endl;
+        smash1.removeFromFG(); // remove job from fg
     }
 }
-
 
 //********************************************
 // function name: StopHandler
@@ -125,4 +130,4 @@ void StopHandler(int signal) { // handle the CTRL-Z Signal
 
 
 }
-**/
+
