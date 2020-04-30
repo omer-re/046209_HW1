@@ -106,18 +106,22 @@ int main(int argc, char *argv[]) {
             }
         }
 
-
+        cout << "\nline 109\n";
         if (!ExeComp(lineSize)) continue;
+        cout << "\nline 111\n";
         // background command
         if (!BgCmd(lineSize, prev_path)) continue;
         // built in commands
+        cout << "\nline 115\n";
         ExeCmd(lineSize, cmdString, false, prev_path);
-
+        cout << "\nline 117\n";
         smash1.addToHistory(cmdString); //add command to history list
-
+        cout << "\nline 119\n";
         /* initialize for next line read*/
         lineSize[0] = '\0';
         cmdString[0] = '\0';
+        cout << "\nline 119 : Finished loop\n";
+
     }
 
     return 0;

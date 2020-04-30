@@ -19,6 +19,7 @@ extern smash smash1;
 void TerminateHandler(int signal) {
     // cout << "TerminateHandler" << "  waitingpid=  " << waitingPID << "  " << endl;
     pid_t currPid = (-1) * smash1.fgJob().getPID();
+    // TODO maybe the -1 here makes problems?
     //cout << "TerminateHandler" <<  "  currpid=  "<< currPid<< "  "<< endl;
     if (currPid == -1) //nothing in fg
         return;
@@ -27,7 +28,7 @@ void TerminateHandler(int signal) {
         cout << " cannot send signal" << endl;
         return;
     } else {
-        cout << "signal SIGINT was sent to pid " << (-1) * currPid << endl;
+        cout << "\nsignal SIGINT was sent to pid " << (-1) * currPid << endl;
         smash1.removeFromFG(); // remove job from fg
     }
     int status;
@@ -55,7 +56,7 @@ void StopHandler(int signal) { // handle the CTRL-Z Signal
         cout << " cannot send signal" << endl;
         return;
     } else {
-        cout << "signal SIGTSTP was sent to pid " << currPid << endl;
+        cout << "\nsignal SIGTSTP was sent to pid " << currPid << endl;
         job FG = smash1.fgJob();
         FG.jobSuspended();
         smash1.addJob(FG);// add to jobList

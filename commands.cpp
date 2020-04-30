@@ -210,7 +210,7 @@ int ExeCmd(char *lineSize, char *cmdString, bool bg, char *prev_path) {
                     break;
             }
             if (command == smash1.getListEnd())    //no such process
-                illegal_cmd = true;  // TODO redundant?
+                illegal_cmd = true;
             if (!illegal_cmd) //process found
             {
 
@@ -227,7 +227,10 @@ int ExeCmd(char *lineSize, char *cmdString, bool bg, char *prev_path) {
                     printf("%s\n", command->getJobName().c_str());
                     waitingPID = command->getPID();
                     smash1.setLastProcessOnFg(command->getID());
-                    while (waitpid(command->getPID(), NULL, WUNTRACED) == -1);
+                    cout << "\ncommands::fg line 230\n";
+                    // while (waitpid(command->getPID(), NULL, WUNTRACED) == -1);
+                    while (waitpid(command->getPID(), NULL, WNOHANG) == -1);
+                    cout << "\ncommands::fg line 232\n";
                     smash1.eraseFromList(command->getID());
                 }
                 //waitingPID = 0;
