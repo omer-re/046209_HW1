@@ -14,6 +14,10 @@ commands.o: commands.cpp commands.h
 smash.o: smash.cpp commands.h
 signals.o: signals.cpp signals.h
 # Cleaning old files before new make
+#clean:
+#	rm -f $(PROG) $(OBJS) $(TARGET) *.o *~ "#"* core.*
+.PHONY: clean
 clean:
-	rm -f $(PROG) $(OBJS) $(TARGET) *.o *~ "#"* core.*
+	rm -f smash $(OBJS)
+	$(RM) $(TARGET) *.o *~ "#"* core.*
 

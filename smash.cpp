@@ -33,8 +33,8 @@ int job_counter;
 int waitingPID;
 
 
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "EndlessLoop"
+//#pragma clang diagnostic push
+//#pragma ide diagnostic ignored "EndlessLoop"
 
 //**************************************************************************************
 // function name: main
@@ -62,6 +62,13 @@ int main(int argc, char *argv[]) {
     //set your signal handlers here
     sigaction(SIGINT, &term, NULL);
     sigaction(SIGTSTP, &stop, NULL);
+
+
+
+    //chld.sa_flags = SA_NOCLDSTOP;
+    //chld.sa_handler = &catchSigchld;
+    //chld.sa_flags = SA_NOCLDSTOP;
+    //sigaction(SIGCHLD, &chld, NULL);
     /************************************/
 
     /************************************/
@@ -81,9 +88,28 @@ int main(int argc, char *argv[]) {
         printf("smash > ");
         lineSize[0] = 0;
         fgets(lineSize, MAX_LINE_SIZE, stdin);
+        //smash1.updateJobs();
         strcpy(cmdString, lineSize);
         cmdString[strlen(lineSize) - 1] = '\0';
         // perform a complicated Command
+
+        //update status
+        list<job> jobs = smash1.GetJobs();
+        for (list<job>::iterator it = jobs.begin(); it != jobs.end(); ++it) {
+            int status;
+            int result = waitpid(it->getPID(), &status, WNOHANG);
+            if (result == -1) {
+                perror("error:");
+                exit(1);
+            }
+
+            if (result == it->getPID()) {
+                int jpid = it->getPID();
+                smash1.eraseJobFromList(jpid);
+            }
+        }
+
+
         if (!ExeComp(lineSize)) continue;
         // background command
         if (!BgCmd(lineSize, prev_path)) continue;
@@ -99,4 +125,4 @@ int main(int argc, char *argv[]) {
 
     return 0;
 }
-#pragma clang diagnostic pop
+//#pragma clang diagnostic pop

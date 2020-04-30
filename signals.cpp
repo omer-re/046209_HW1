@@ -91,7 +91,7 @@ void StopHandler(int signal) { // handle the CTRL-Z Signal
 // Returns: void
 //**************************************************************************************
 void TerminateHandler(int signal) {
-    cout << "TerminateHandler" << "  waitingpid=  " << waitingPID << "  " << endl;
+   // cout << "TerminateHandler" << "  waitingpid=  " << waitingPID << "  " << endl;
     pid_t currPid = (-1) * smash1.fgJob().getPID();
     //cout << "TerminateHandler" <<  "  currpid=  "<< currPid<< "  "<< endl;
     if (currPid == -1) //nothing in fg
@@ -101,8 +101,13 @@ void TerminateHandler(int signal) {
         cout << " cannot send signal" << endl;
         return;
     } else {
-        cout << "signal SIGINT was sent to pid " << currPid << endl;
+        cout << "signal SIGINT was sent to pid " << (-1) * currPid << endl;
         smash1.removeFromFG(); // remove job from fg
+    }
+    int status;
+    int w = waitpid(currPid, &status, WUNTRACED);    //check
+    if (w == -1) {
+        perror("smash error: > waitpid");
     }
 }
 
@@ -112,6 +117,8 @@ void TerminateHandler(int signal) {
 // Parameters: signal
 // Returns: void
 //**************************************************************************************
+
+/*
 void StopHandler(int signal) { // handle the CTRL-Z Signal
     cout << "StopHandler" << "  waitingpid=  "<< waitingPID<<"  "<<endl;
     cout <<  endl;
@@ -130,4 +137,23 @@ void StopHandler(int signal) { // handle the CTRL-Z Signal
 
 
 }
-
+*/
+void StopHandler(int signal) { // handle the CTRL-Z Signal
+    cout << endl;
+    pid_t currPid = smash1.fgJob().getPID();
+    //cout << "WaitingPID is: " << waitingPID << endl;
+    //cout << "currPID is: " << currPid << endl;
+    if (currPid == -1) //nothing in fg
+        return;
+    int k = kill(currPid, signal);
+    if (k == -1) {
+        cout << " cannot send signal" << endl;
+        return;
+    } else {
+        cout << "signal SIGTSTP was sent to pid " << currPid << endl;
+        job FG = smash1.fgJob();
+        FG.jobSuspended();
+        smash1.addJob(FG);// add to jobList
+        smash1.removeFromFG(); // remove job from fg
+    }
+}

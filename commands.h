@@ -305,7 +305,7 @@ public:
             }
 
         }
-        cout << "last is   " << last->getJobName() << endl;
+        //cout << "last is   " << last->getJobName() << endl;
         return last;
     }
 
@@ -341,7 +341,6 @@ public:
 
             int k = kill(jpid, SIGTERM);
             if (k == -1) {
-                printf("free");
                 perror("smash error: >");
                 return;
             }

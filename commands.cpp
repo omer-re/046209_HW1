@@ -214,7 +214,7 @@ int ExeCmd(char *lineSize, char *cmdString, bool bg, char *prev_path) {
             if (!illegal_cmd) //process found
             {
 
-                if (kill(command->getPID(), SIGCONT) == 0) // if job was stopped release it
+                if (send_sig(command->getPID(), SIGCONT) == 0) // if job was stopped release it
                 {
                     string name_ = command->getJobName();
                     int id_ = command->getID();
@@ -230,10 +230,8 @@ int ExeCmd(char *lineSize, char *cmdString, bool bg, char *prev_path) {
                     while (waitpid(command->getPID(), NULL, WUNTRACED) == -1);
                     smash1.eraseFromList(command->getID());
                 }
-                waitingPID = 0;
-            } else // no jobs / all are suspended
-            {   // TODO other err message if no jobs on the list?
-                printf("smash error: > job [%d] is already running in the background\n", command->getID());
+                //waitingPID = 0;
+
             }
         }
     }
@@ -249,23 +247,25 @@ int ExeCmd(char *lineSize, char *cmdString, bool bg, char *prev_path) {
             list<job>::iterator command = smash1.LastjobSuspended();
             switch (num_arg) {
                 case 0:  // no args- find last process sent to bg
-                    if (suspended_counter) {  // case there are jobs in the bg
-                        // checking if there was a job suspended
-                        command = smash1.LastjobSuspended();
-                        //have_stopped = true;
-                    }
-                    if (!suspended_counter) { // if no job was suspended
-                        return -1;
+                    //if (suspended_counter) {  // case there are jobs in the bg
+                    // checking if there was a job suspended
+                    if (command == smash1.getListEnd()) {
+                        // if no job was suspended
                         illegal_cmd = true;
+                        return -1;
                     }
+
+                    break;
                 case 1: // find the relevant job
-                    if (!has_only_digits(args[1])) {
+                    if (has_only_digits(args[1])) {
                         command = smash1.getJobFromId(atoi(args[1]));
                         if (command == smash1.getListEnd()) {
                             illegal_cmd = true;
                         } else if (command->isSus()) {
                             cout << command->getJobName() << endl;
                         }
+                    } else {
+                        illegal_cmd = true;
                     }
                     break;
 
@@ -274,15 +274,20 @@ int ExeCmd(char *lineSize, char *cmdString, bool bg, char *prev_path) {
                     break;
             }
             if (!illegal_cmd) {
-                if (send_sig(command->getPID(), SIGCONT) == 0) {
-                    command->jobUnsuspended();
-                    //printf("%s\n", command->getJobName().c_str()); // TODO fit to our functions and data set
+                if (command->isSus()) {
+                    string name = command->getJobName();
+                    if (send_sig(command->getPID(), SIGCONT) == 0) {
+                        cout << name << endl;
+                        command->jobUnsuspended();
+                        //printf("%s\n", command->getJobName().c_str()); // TODO fit to our functions and data set
+                    }
                 }
             }
+        }
 
 
         }
-    }
+
 
         /*************************************************/
     else if (!strcmp(cmd, "quit")) {
@@ -408,15 +413,23 @@ void ExeExternal(char *args[MAX_ARG], char *cmdString, bool bg) {
             string name = args[0];
             //  if it's not on background - we will wait for it
             if (!bg) {
-                int status;
+                //int status;
+
                 waitingPID = pID;
-                while (waitpid(pID, &status, WUNTRACED) == -1);
-                waitingPID = 0;
-                if (WIFSTOPPED(status)) {
-                    job FG = job(pID, name, false);
-                    smash1.setFgJob(FG);
-                    waitpid(pID, NULL, 0);
-                }
+                job FG = job(pID, name, false);
+                smash1.setFgJob(FG);
+                waitpid(pID, NULL, 0);
+                //waitpid(pID, &status, WUNTRACED);
+
+                //  while (waitpid(pID, &status, WUNTRACED) == -1);
+                //waitingPID = 0;
+                //if (WIFSTOPPED(status)) {
+                //printf("blbbb,b");
+                //job FG = job(pID, name, false);
+                //smash1.setFgJob(FG);
+                //waitpid(pID, NULL, 0);
+                //}
+                //waitpid(pID &status, WUNTRACED);
             }
                 // job is bg
             else {
@@ -436,8 +449,8 @@ void ExeExternal(char *args[MAX_ARG], char *cmdString, bool bg) {
 // Returns: 0- if complicated -1- if not
 //**************************************************************************************
 int ExeComp(char *lineSize) {
-    char ExtCmd[MAX_LINE_SIZE + 2];
-    char *args[MAX_ARG];
+    //char ExtCmd[MAX_LINE_SIZE + 2];
+    //  char *args[MAX_ARG];
     if ((strstr(lineSize, "|")) || (strstr(lineSize, "<")) || (strstr(lineSize, ">")) || (strstr(lineSize, "*")) ||
         (strstr(lineSize, "?")) || (strstr(lineSize, ">>")) || (strstr(lineSize, "|&"))) {
         // Add your code here (execute a complicated command)
