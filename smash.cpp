@@ -33,9 +33,6 @@ int job_counter;
 int waitingPID;
 
 
-//#pragma clang diagnostic push
-//#pragma ide diagnostic ignored "EndlessLoop"
-
 //**************************************************************************************
 // function name: main
 // Description: main function of smash. get command from user and calls command functions
@@ -125,4 +122,3 @@ int main(int argc, char *argv[]) {
 
     return 0;
 }
-//#pragma clang diagnostic pop
