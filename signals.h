@@ -30,6 +30,7 @@ using namespace std;
 
 void TerminateHandler(int signal); // handle the CTRL-C Signal
 void StopHandler(int signal); // handle the CTRL-Z Signal
+//void catchSigchld(int signal);
 
 //void get_smash1_to_signals(smash &smash1);
 

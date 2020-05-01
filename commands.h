@@ -60,7 +60,6 @@ public:
     }
 
     ~job() {
-// TODO should we add a d'tor?
     }
 
     //gets:
@@ -119,11 +118,6 @@ public:
         ID = getpid();
         jobs.clear();
         history.clear();
-
-        // somthing with previous path
-
-
-        //define the fg
 
     }
 
@@ -279,11 +273,9 @@ public:
     }
 
 
-    int LastInBgOLD() //TODO check that this is how "job is in the bg" is defined
-    {
+    int LastInBgOLD() {
         int last = -1;
         for (list<job>::iterator it = jobs.begin(); it != jobs.end(); ++it) {
-            // TODO make sure it isn't last on fg!
             if (!it->isSus() && it->getID() != getLastProcessOnFg()) // unsuspended and not the last one n the fg
             {
                 last = it->getID();
@@ -305,7 +297,7 @@ public:
             }
 
         }
-        cout << "last is   " << last->getJobName() << endl;
+        //cout << "last is   " << last->getJobName() << endl;
         return last;
     }
 
@@ -341,7 +333,6 @@ public:
 
             int k = kill(jpid, SIGTERM);
             if (k == -1) {
-                printf("free");
                 perror("smash error: >");
                 return;
             }
