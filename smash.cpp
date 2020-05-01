@@ -106,6 +106,7 @@ int main(int argc, char *argv[]) {
             }
         }
 
+
         cout << "\nline 109\n";
         if (!ExeComp(lineSize)) continue;
         cout << "\nline 111\n";

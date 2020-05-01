@@ -238,6 +238,7 @@ int ExeCmd(char *lineSize, char *cmdString, bool bg, char *prev_path) {
             }
         }
     }
+
         /*************************************************/
     else if (!strcmp(cmd, "bg")) {
         //if arg[2]==NULL find last process that was paused
