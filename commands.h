@@ -151,7 +151,7 @@ public:
     }
 
     const list<job>::iterator getListEnd() {
-        return jobs.end();  //TODO is this a valid value? if not- needs a return value for last job on list for FG func
+        return jobs.end();
     }
 
     void printJobList() {
@@ -240,7 +240,7 @@ public:
         int status;
         int result = waitpid(jpid, &status, WNOHANG);
         if (result == -1) {
-            perror("error:");
+            perror("error waitpid");
             exit(1);
         }
 
@@ -272,17 +272,6 @@ public:
         jobs.push_back(j);
     }
 
-
-    int LastInBgOLD() {
-        int last = -1;
-        for (list<job>::iterator it = jobs.begin(); it != jobs.end(); ++it) {
-            if (!it->isSus() && it->getID() != getLastProcessOnFg()) // unsuspended and not the last one n the fg
-            {
-                last = it->getID();
-            }
-        }
-        return last;
-    }
 
     list<job>::iterator LastInBg() {
         list<job>::iterator last = jobs.begin();

@@ -128,7 +128,6 @@ int ExeCmd(char *lineSize, char *cmdString, bool bg, char *prev_path) {
         if (num_arg == 2) {
             if ((!has_only_digits(args[1] + 1)) || (!has_only_digits(args[2]))) {
                 cout << "smash error:> kill job - job does not exist" << endl;
-                // TODO add illegal command=true?
             } else {
                 if (args[1][0] != '-') {
                     illegal_cmd = true;
@@ -136,22 +135,19 @@ int ExeCmd(char *lineSize, char *cmdString, bool bg, char *prev_path) {
                 int JobId = atoi(args[2]);
                 if (!smash1.isInJList(JobId)) {    //job doesn't exist
                     cout << "smash error:> kill job - job does not exist" << endl;
-                    // TODO add illegal command=true?
                 } else {
                     //job exist-
                     int signum = atoi(args[1] + 1);
                     list<job>::iterator it = smash1.getJobFromId(JobId);
 
-                    int Jpid = it->getPID();
+                    pid_t Jpid = it->getPID();
                     int k = kill(Jpid, signum);
                     if (k == -1) {
                         cout << "kill job - cannot send signal" << endl;
                     }
                     // else- signal sent
                     cout << "signal " << strdup(sys_siglist[signum]) << " was sent to pid " << Jpid << endl;
-                    if (signum == SIGKILL || signum == SIGINT || signum == SIGTERM) {
-                        smash1.eraseJobFromList(Jpid);
-                    }
+                    // }
                     if (signum == SIGCONT) {
                         if (it->isSus() == true) {
                             it->jobUnsuspended();
@@ -216,21 +212,25 @@ int ExeCmd(char *lineSize, char *cmdString, bool bg, char *prev_path) {
 
                 if (send_sig(command->getPID(), SIGCONT) == 0) // if job was stopped release it
                 {
-                    string name_ = command->getJobName();
-                    int id_ = command->getID();
+                    //int status;
+                    //string name_ = command->getJobName();
+                    //int id_ = command->getID();
                     pid_t pid_ = command->getPID();
-                    time_t time_ = command->getTime();
+                    //time_t time_ = command->getTime();
 
-                    job fg_ = job(pid_, id_, name_, time_);
-
-                    smash1.setFgJob(fg_);
+                    //job fg_ = job(pid_, id_, name_, time_);
+                    if (command->isSus()) {
+                        command->jobUnsuspended();
+                    }
+                    smash1.setFgJob(*command);
                     printf("%s\n", command->getJobName().c_str());
                     waitingPID = command->getPID();
                     smash1.setLastProcessOnFg(command->getID());
-                    cout << "\ncommands::fg line 230\n";
+
+                    waitpid(pid_, NULL, 0);
+                    smash1.eraseJobFromList(pid_);
                     // while (waitpid(command->getPID(), NULL, WUNTRACED) == -1);
-                    while (waitpid(command->getPID(), NULL, WNOHANG) == -1);
-                    cout << "\ncommands::fg line 232\n";
+                    //while (waitpid(command->getPID(), NULL, WNOHANG) == -1);
                     smash1.eraseFromList(command->getID());
                 }
                 //waitingPID = 0;
@@ -280,10 +280,10 @@ int ExeCmd(char *lineSize, char *cmdString, bool bg, char *prev_path) {
             if (!illegal_cmd) {
                 if (command->isSus()) {
                     string name = command->getJobName();
+                    //int pid_ = command->getPID();
                     if (send_sig(command->getPID(), SIGCONT) == 0) {
                         cout << name << endl;
                         command->jobUnsuspended();
-                        //printf("%s\n", command->getJobName().c_str()); // TODO fit to our functions and data set
                     }
                 }
             }
@@ -314,8 +314,7 @@ int ExeCmd(char *lineSize, char *cmdString, bool bg, char *prev_path) {
     }
         /*************************************************/
 
-    else if (!strcmp(cmd, "cp"))  //TODO do all of the errors has to be followed with "illegal command"?
-    {
+    else if (!strcmp(cmd, "cp")) {
         //check there are 2 args
         if (num_arg != 2)
             illegal_cmd = true;
@@ -425,15 +424,6 @@ void ExeExternal(char *args[MAX_ARG], char *cmdString, bool bg) {
                 waitpid(pID, NULL, 0);
                 //waitpid(pID, &status, WUNTRACED);
 
-                //  while (waitpid(pID, &status, WUNTRACED) == -1);
-                //waitingPID = 0;
-                //if (WIFSTOPPED(status)) {
-                //printf("blbbb,b");
-                //job FG = job(pID, name, false);
-                //smash1.setFgJob(FG);
-                //waitpid(pID, NULL, 0);
-                //}
-                //waitpid(pID &status, WUNTRACED);
             }
                 // job is bg
             else {

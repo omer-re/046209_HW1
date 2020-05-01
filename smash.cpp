@@ -60,12 +60,6 @@ int main(int argc, char *argv[]) {
     sigaction(SIGINT, &term, NULL);
     sigaction(SIGTSTP, &stop, NULL);
 
-
-
-    //chld.sa_flags = SA_NOCLDSTOP;
-    //chld.sa_handler = &catchSigchld;
-    //chld.sa_flags = SA_NOCLDSTOP;
-    //sigaction(SIGCHLD, &chld, NULL);
     /************************************/
 
     /************************************/
@@ -76,7 +70,7 @@ int main(int argc, char *argv[]) {
     L_Fg_Cmd[0] = '\0';
     waitingPID = 0;
     suspended_counter = 0;
-    job_counter = 0;
+    job_counter = 1;
     if (!(prev_path = realpath(".", NULL))) {
         perror("pwd");
     }
@@ -85,10 +79,7 @@ int main(int argc, char *argv[]) {
         printf("smash > ");
         lineSize[0] = 0;
         fgets(lineSize, MAX_LINE_SIZE, stdin);
-        //smash1.updateJobs();
-        strcpy(cmdString, lineSize);
-        cmdString[strlen(lineSize) - 1] = '\0';
-        // perform a complicated Command
+
 
         //update status
         list<job> jobs = smash1.GetJobs();
@@ -96,7 +87,7 @@ int main(int argc, char *argv[]) {
             int status;
             int result = waitpid(it->getPID(), &status, WNOHANG);
             if (result == -1) {
-                perror("error:");
+                perror("error waitpid");
                 exit(1);
             }
 
@@ -106,22 +97,18 @@ int main(int argc, char *argv[]) {
             }
         }
 
-
-        cout << "\nline 109\n";
+        strcpy(cmdString, lineSize);
+        cmdString[strlen(lineSize) - 1] = '\0';
+        // perform a complicated Command
         if (!ExeComp(lineSize)) continue;
-        cout << "\nline 111\n";
         // background command
         if (!BgCmd(lineSize, prev_path)) continue;
         // built in commands
-        cout << "\nline 115\n";
         ExeCmd(lineSize, cmdString, false, prev_path);
-        cout << "\nline 117\n";
         smash1.addToHistory(cmdString); //add command to history list
-        cout << "\nline 119\n";
         /* initialize for next line read*/
         lineSize[0] = '\0';
         cmdString[0] = '\0';
-        cout << "\nline 119 : Finished loop\n";
 
     }
 

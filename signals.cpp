@@ -19,9 +19,8 @@ extern smash smash1;
 void TerminateHandler(int signal) {
     // cout << "TerminateHandler" << "  waitingpid=  " << waitingPID << "  " << endl;
     pid_t currPid = (-1) * smash1.fgJob().getPID();
-    // TODO maybe the -1 here makes problems?
     //cout << "TerminateHandler" <<  "  currpid=  "<< currPid<< "  "<< endl;
-    if (currPid == -1) //nothing in fg
+    if (currPid == 1) //nothing in fg
         return;
     int res_kill = kill((-1) * waitingPID, SIGINT);
     if (res_kill == -1) {  //  means there is a command running in the foreground
@@ -59,7 +58,14 @@ void StopHandler(int signal) { // handle the CTRL-Z Signal
         cout << "\nsignal SIGTSTP was sent to pid " << currPid << endl;
         job FG = smash1.fgJob();
         FG.jobSuspended();
-        smash1.addJob(FG);// add to jobList
-        smash1.removeFromFG(); // remove job from fg
+        // add to jobList
+        smash1.addJob(FG);
+        // remove job from fg
+        smash1.removeFromFG();
+    }
+    int status;
+    int w = waitpid(currPid, &status, WUNTRACED);    //check
+    if (w == -1) {
+        perror("smash error: > waitpid");
     }
 }
