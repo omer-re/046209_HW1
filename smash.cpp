@@ -13,7 +13,6 @@ main file. This file contains the main function of smash
 
 //new libs
 #include <string>
-//#include <cstring>
 #include <iostream>
 #include <sstream>
 
@@ -39,7 +38,6 @@ int main(int argc, char *argv[]) {
     char cmdString[MAX_LINE_SIZE];
     char *prev_path;
 
-    // get_smash1_to_signals(smash1);
     //signal declaretions
     //NOTE: the signal handlers and the function/s that sets the handler should be found in siganls.c
     /* add your code here */
