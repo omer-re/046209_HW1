@@ -1,3 +1,7 @@
+//		commands.h
+// Smash class, Jobs Class and their methods.
+//********************************************
+
 #ifndef _COMMANDS_H
 #define _COMMANDS_H
 
@@ -45,7 +49,7 @@ public:
     //Constructor
     job(int jpid, string name, bool sus) : id(job_counter++), pid(jpid), jobName(name), suspended(sus) {
 
-        Time = time(NULL);// get current time--- check?
+        Time = time(NULL);// get current time
     }
 
     job(int jpid, int jid, string name, time_t jtime) : id(jid), pid(jpid), jobName(name), Time(jtime) {
@@ -109,8 +113,6 @@ private:
     vector<string> history;
     int last_processID_on_fg;  //foreground job
     job fg_;  //foreground job
-    //another val for previous path
-
 
 public:
     smash() {
@@ -129,18 +131,22 @@ public:
         last_processID_on_fg = lastProcessOnFg;
     }
 
-    ~smash() {  //d'tor
+    //d'tor
+    ~smash() {
         jobs.clear();
         history.clear();
     }
-    // smash funcs
+    ///////////////////
+    // smash funcs ///
+    ////////////////////
 
-    int getSid() { //get ID
+    //get ID
+    int getSid() {
         return ID;
     }
 
-    void printHist()   //print the history vector
-    {
+    //print the history vector
+    void printHist() {
         if (!history.empty()) //if  history vector is not empty
         {
             for (vector<string>::iterator it = history.begin(); it != history.end(); ++it) {
@@ -174,8 +180,8 @@ public:
         }
     }
 
-    void addToHistory(string c) // add command  to History vec
-    {
+    // add command  to History vec
+    void addToHistory(string c) {
         if (history.size() == MAX_HISTORY) {
             history.erase(history.begin());
         }
@@ -183,7 +189,8 @@ public:
         history.push_back(c);
     }
 
-    list<job>::iterator getJobFromId(int id) { //check if the job ID exist in the list and return the job
+    //check if the job ID exist in the list and return the job
+    list<job>::iterator getJobFromId(int id) {
         for (list<job>::iterator it = jobs.begin(); it != jobs.end(); ++it) {
             int itID = it->getID();
             if (itID == id) {
@@ -195,7 +202,8 @@ public:
 
     }
 
-    list<job>::iterator getJobFromPID(int _pid) { //check if the job PID exist in the list and return the job
+    //check if the job PID exist in the list and return the job
+    list<job>::iterator getJobFromPID(int _pid) {
         for (list<job>::iterator it = jobs.begin(); it != jobs.end(); ++it) {
             int itPID = it->getPID();
             if (itPID == _pid) {
@@ -249,7 +257,8 @@ public:
         }
     }
 
-    void updateJobs() { // for jobs cmd- check if job finished- and erase from list
+    // for jobs cmd- check if job finished- and erase from list
+    void updateJobs() {
         for (list<job>::iterator it = jobs.begin(); it != jobs.end(); ++it) {
             jobStatus(it->getPID());
 
@@ -286,12 +295,11 @@ public:
             }
 
         }
-        //cout << "last is   " << last->getJobName() << endl;
         return last;
     }
 
-    void eraseFromList(int id) //erase from job list
-    {
+    //erase from job list
+    void eraseFromList(int id) {
         for (list<job>::iterator it = jobs.begin(); it != jobs.end(); ++it) {
             if (it->getID() == id)
                 it = jobs.erase(it);
@@ -313,8 +321,8 @@ public:
     }
 
 
-    void quitKill()//for quit kill cmd
-    {
+    //for quit kill cmd
+    void quitKill() {
 
         for (list<job>::iterator it = jobs.begin(); it != jobs.end(); ++it) {
             pid_t jpid = it->getPID();
@@ -342,7 +350,7 @@ public:
                     return;
                 }
                 cout << "[" << jid << "] " << jname << " - Sending SIGTERM...(5 sec passed) Sending SIGKILL...Done."
-                     << endl;
+                        << endl;
             }
         }
 

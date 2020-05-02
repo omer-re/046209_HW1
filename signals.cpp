@@ -1,6 +1,6 @@
 // signals.c
 // contains signal handler funtions
-// contains the function/s that set the signal handlers
+// contains the functions that set the signal handlers
 
 /*******************************************/
 /* Name: handler_cntlc
@@ -17,13 +17,15 @@ extern smash smash1;
 // Returns: void
 //**************************************************************************************
 void TerminateHandler(int signal) {
-    // cout << "TerminateHandler" << "  waitingpid=  " << waitingPID << "  " << endl;
     pid_t currPid = (-1) * smash1.fgJob().getPID();
-    //cout << "TerminateHandler" <<  "  currpid=  "<< currPid<< "  "<< endl;
-    if (currPid == 1) //nothing in fg
+
+    //nothing in fg
+    if (currPid == 1)
         return;
     int res_kill = kill((-1) * waitingPID, SIGINT);
-    if (res_kill == -1) {  //  means there is a command running in the foreground
+
+    //  means there is a command running in the foreground
+    if (res_kill == -1) {
         cout << " cannot send signal" << endl;
         return;
     } else {
@@ -37,18 +39,17 @@ void TerminateHandler(int signal) {
     }
 }
 
+
 //********************************************
 // function name: StopHandler
 // Description: CTRL-Z signal handler
 // Parameters: signal
 // Returns: void
-//**************************************************************************************
+//**********************************************
 void StopHandler(int signal) { // handle the CTRL-Z Signal
-    cout << endl;
     pid_t currPid = smash1.fgJob().getPID();
-    //cout << "WaitingPID is: " << waitingPID << endl;
-    //cout << "currPID is: " << currPid << endl;
-    if (currPid == -1) //nothing in fg
+    //nothing in fg
+    if (currPid == -1)
         return;
     int k = kill(currPid, signal);
     if (k == -1) {
@@ -62,10 +63,5 @@ void StopHandler(int signal) { // handle the CTRL-Z Signal
         smash1.addJob(FG);
         // remove job from fg
         smash1.removeFromFG();
-    }
-    int status;
-    int w = waitpid(currPid, &status, WUNTRACED);    //check
-    if (w == -1) {
-        perror("smash error: > waitpid");
     }
 }

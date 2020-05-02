@@ -1,4 +1,5 @@
 //		commands.c
+// implementation of the required commands: cd, pwd, jobs, kill, showpid, fg, bg, quit, diff, cp
 //********************************************
 #include "commands.h"
 #include "signals.h"
@@ -144,10 +145,12 @@ int ExeCmd(char *lineSize, char *cmdString, bool bg, char *prev_path) {
                     int k = kill(Jpid, signum);
                     if (k == -1) {
                         cout << "kill job - cannot send signal" << endl;
+                        return 0;
                     }
                     // else- signal sent
-                    cout << "signal " << strdup(sys_siglist[signum]) << " was sent to pid " << Jpid << endl;
-                    // }
+
+                    cout << "signal " << sys_siglist[signum] << " was sent to pid " << Jpid << endl;
+
                     if (signum == SIGCONT) {
                         if (it->isSus() == true) {
                             it->jobUnsuspended();
@@ -229,11 +232,7 @@ int ExeCmd(char *lineSize, char *cmdString, bool bg, char *prev_path) {
 
                     waitpid(pid_, NULL, 0);
                     smash1.eraseJobFromList(pid_);
-                    // while (waitpid(command->getPID(), NULL, WUNTRACED) == -1);
-                    //while (waitpid(command->getPID(), NULL, WNOHANG) == -1);
-                    smash1.eraseFromList(command->getID());
                 }
-                //waitingPID = 0;
 
             }
         }
@@ -250,8 +249,10 @@ int ExeCmd(char *lineSize, char *cmdString, bool bg, char *prev_path) {
             list<job>::iterator iter;
             list<job>::iterator command = smash1.LastjobSuspended();
             switch (num_arg) {
-                case 0:  // no args- find last process sent to bg
-                    //if (suspended_counter) {  // case there are jobs in the bg
+
+                case 0:
+                    // no args- find last process sent to bg
+                    // case there are jobs in the bg
                     // checking if there was a job suspended
                     if (command == smash1.getListEnd()) {
                         // if no job was suspended
@@ -336,8 +337,6 @@ int ExeCmd(char *lineSize, char *cmdString, bool bg, char *prev_path) {
             } else {
                 cout << args[1] << " has been copied to " << args[2] << endl;
             }
-            //  TODO: check if copied properly
-            //   perror("smash error:> ");
 
         }
     }
@@ -443,8 +442,7 @@ void ExeExternal(char *args[MAX_ARG], char *cmdString, bool bg) {
 // Returns: 0- if complicated -1- if not
 //**************************************************************************************
 int ExeComp(char *lineSize) {
-    //char ExtCmd[MAX_LINE_SIZE + 2];
-    //  char *args[MAX_ARG];
+
     if ((strstr(lineSize, "|")) || (strstr(lineSize, "<")) || (strstr(lineSize, ">")) || (strstr(lineSize, "*")) ||
         (strstr(lineSize, "?")) || (strstr(lineSize, ">>")) || (strstr(lineSize, "|&"))) {
         // Add your code here (execute a complicated command)
@@ -485,6 +483,13 @@ int BgCmd(char *lineSize, char *prev_path) {
     return -1;
 }
 
+
+/**
+ * compares two files
+ * @param a file a path
+ * @param b file b path
+ * @return bool value
+ */
 bool areFilesEqual(fstream *a, fstream *b) {
     int fileSize1 = sizeOfFile(a);
     int fileSize2 = sizeOfFile(b);
@@ -505,7 +510,6 @@ bool areFilesEqual(fstream *a, fstream *b) {
             b->read(file2buffer, BUFFER_SIZE);
 
             if (memcmp(file1buffer, file2buffer, BUFFER_SIZE) != 0) {
-                //cout << "Files are not equal, at least one of the byte was different" << endl;
 
                 delete[] file1buffer;
                 delete[] file2buffer;
@@ -517,11 +521,15 @@ bool areFilesEqual(fstream *a, fstream *b) {
         delete[] file2buffer;
         return true;
     } else {
-        //cout << "Size of Files are not equal" << endl;
         return false;
     }
 }
 
+/**
+ * calculates the file size
+ * @param file path
+ * @return size of file
+ */
 int sizeOfFile(fstream *file) {
     file->seekg(0, ios::end);
     int sizeOfFile = file->tellg();
